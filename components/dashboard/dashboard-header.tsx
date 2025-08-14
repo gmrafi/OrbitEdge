@@ -83,6 +83,14 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
                 Analytics
               </Link>
               <Link
+                href="/dashboard/chat"
+                className={`font-medium transition-colors ${
+                  isActive("/dashboard/chat") ? "text-[#4e6aff]" : "text-gray-600 hover:text-[#4e6aff]"
+                }`}
+              >
+                Chat
+              </Link>
+              <Link
                 href="/dashboard/compliance"
                 className={`font-medium transition-colors ${
                   isActive("/dashboard/compliance") ? "text-[#4e6aff]" : "text-gray-600 hover:text-[#4e6aff]"

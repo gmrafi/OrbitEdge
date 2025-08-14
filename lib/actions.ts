@@ -1,9 +1,13 @@
 "use server"
 
-import { createClient } from "@/lib/supabase/server"
+import { createClient, isSupabaseConfigured } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 
 export async function signIn(prevState: any, formData: FormData) {
+  if (!isSupabaseConfigured) {
+    return { error: "Authentication service is not configured. Please contact support." }
+  }
+
   if (!formData) {
     return { error: "Form data is missing" }
   }
@@ -30,11 +34,15 @@ export async function signIn(prevState: any, formData: FormData) {
     return { success: true }
   } catch (error) {
     console.error("Login error:", error)
-    return { error: "An unexpected error occurred. Please try again." }
+    return { error: "Unable to connect to authentication service. Please try again later." }
   }
 }
 
 export async function signUp(prevState: any, formData: FormData) {
+  if (!isSupabaseConfigured) {
+    return { error: "Authentication service is not configured. Please contact support." }
+  }
+
   if (!formData) {
     return { error: "Form data is missing" }
   }
@@ -66,12 +74,21 @@ export async function signUp(prevState: any, formData: FormData) {
     return { success: "Check your email to confirm your account and get started with OrbitEdge Global!" }
   } catch (error) {
     console.error("Sign up error:", error)
-    return { error: "An unexpected error occurred. Please try again." }
+    return { error: "Unable to connect to authentication service. Please try again later." }
   }
 }
 
 export async function signOut() {
-  const supabase = createClient()
-  await supabase.auth.signOut()
+  if (!isSupabaseConfigured) {
+    redirect("/")
+    return
+  }
+
+  try {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+  } catch (error) {
+    console.error("Sign out error:", error)
+  }
   redirect("/")
 }

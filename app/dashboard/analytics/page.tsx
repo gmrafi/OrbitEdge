@@ -6,6 +6,10 @@ import BusinessModelCalculator from "@/components/dashboard/financial/business-m
 import MarketAnalysis from "@/components/dashboard/financial/market-analysis"
 import ROIProjections from "@/components/dashboard/financial/roi-projections"
 import CostOptimization from "@/components/dashboard/financial/cost-optimization"
+import CustomerMetrics from "@/components/dashboard/financial/customer-metrics"
+import BreakEvenAnalysis from "@/components/dashboard/financial/break-even-analysis"
+import CashFlowProjections from "@/components/dashboard/financial/cash-flow-projections"
+import ValuationMetrics from "@/components/dashboard/financial/valuation-metrics"
 
 export default async function AnalyticsPage() {
   const supabase = createClient()
@@ -26,7 +30,7 @@ export default async function AnalyticsPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Financial Analytics</h1>
           <p className="text-gray-600">
-            Business model optimization and revenue projections for sustainable LEO operations
+            Comprehensive business model optimization and revenue projections for sustainable LEO operations
           </p>
         </div>
 
@@ -43,6 +47,18 @@ export default async function AnalyticsPage() {
         <div className="grid lg:grid-cols-2 gap-8 mt-8">
           <ROIProjections />
           <CostOptimization />
+        </div>
+
+        {/* Customer and Break-Even Analysis */}
+        <div className="grid lg:grid-cols-2 gap-8 mt-8">
+          <CustomerMetrics />
+          <BreakEvenAnalysis />
+        </div>
+
+        {/* Cash Flow and Valuation */}
+        <div className="grid lg:grid-cols-2 gap-8 mt-8">
+          <CashFlowProjections />
+          <ValuationMetrics />
         </div>
       </main>
     </div>
