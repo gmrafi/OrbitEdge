@@ -57,7 +57,7 @@ export default async function HomePage() {
             NASA Space Apps Challenge 2025
           </Badge>
           <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 font-space-grotesk leading-tight">
-            Satellite Inspection-as-a-Service for <span className="text-[#4e6aff]">Sustainable LEO</span>
+            Satellite Inspection-as-a-Service for <span className="text-[#4e6aff]">Sustainable Law Earth Orbit (LEO)</span>
           </h1>
           <p className="text-xl text-gray-600 mb-8 leading-relaxed">
             Real-time satellite monitoring, risk analysis, and compliance solutions for the $447B global space economy.
