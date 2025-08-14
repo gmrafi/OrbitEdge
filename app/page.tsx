@@ -311,7 +311,7 @@ export default async function HomePage() {
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-12 px-4">
         <div className="container mx-auto max-w-6xl">
-          <div className="grid md:grid-cols-4 gap-8">
+          <div className="grid md:grid-cols-5 gap-8">
             <div>
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-8 h-8 bg-[#4e6aff] rounded-lg flex items-center justify-center">
@@ -328,22 +328,22 @@ export default async function HomePage() {
               <h4 className="font-semibold mb-4">Product</h4>
               <ul className="space-y-2 text-sm text-gray-400">
                 <li>
-                  <a href="#" className="hover:text-white transition-colors">
+                  <a href="#features" className="hover:text-white transition-colors">
                     Features
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-white transition-colors">
+                  <a href="#pricing" className="hover:text-white transition-colors">
                     Pricing
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    API
+                  <a href="/dashboard/analytics" className="hover:text-white transition-colors">
+                    Analytics
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-white transition-colors">
+                  <a href="/dashboard/learn" className="hover:text-white transition-colors">
                     Documentation
                   </a>
                 </li>
@@ -351,37 +351,45 @@ export default async function HomePage() {
             </div>
 
             <div>
-              <h4 className="font-semibold mb-4">Company</h4>
+              <h4 className="font-semibold mb-4">Data Sources & APIs</h4>
               <ul className="space-y-2 text-sm text-gray-400">
                 <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    About
+                  <a href="https://data.nasa.gov/" className="hover:text-white transition-colors">
+                    NASA Open Data Portal
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Team
+                  <a href="https://sscweb.gsfc.nasa.gov/" className="hover:text-white transition-colors">
+                    SSC Web Services
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Careers
+                  <a href="https://www.space-track.org/" className="hover:text-white transition-colors">
+                    Space-Track.org
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Contact
+                  <a href="https://cddis.nasa.gov/" className="hover:text-white transition-colors">
+                    CDDIS GNSS Data
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://www.nasa.gov/wp-content/uploads/2025/05/nasa-leo-economy-report.pdf"
+                    className="hover:text-white transition-colors"
+                  >
+                    NASA LEO Economy Report
                   </a>
                 </li>
               </ul>
             </div>
 
             <div>
-              <h4 className="font-semibold mb-4">Challenge</h4>
+              <h4 className="font-semibold mb-4">Challenge & Open Source</h4>
               <ul className="space-y-2 text-sm text-gray-400">
                 <li>
                   <a href="https://www.spaceappschallenge.org/" className="hover:text-white transition-colors">
-                    NASA Space Apps
+                    NASA Space Apps Challenge
                   </a>
                 </li>
                 <li>
@@ -393,23 +401,68 @@ export default async function HomePage() {
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-white transition-colors">
-                    Open Source
+                  <a href="https://forms.gle/k2XS6c6nDrjmdwgX9" className="hover:text-white transition-colors">
+                    Submission Form
                   </a>
                 </li>
                 <li>
                   <a href="#" className="hover:text-white transition-colors">
-                    GitHub
+                    GitHub Repository
+                  </a>
+                </li>
+                <li>
+                  <a href="https://www.iso.org/standard/72383.html" className="hover:text-white transition-colors">
+                    ISO 24113 Standard
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-semibold mb-4">Technology Stack</h4>
+              <ul className="space-y-2 text-sm text-gray-400">
+                <li>
+                  <a href="https://nextjs.org/" className="hover:text-white transition-colors">
+                    Next.js 15
+                  </a>
+                </li>
+                <li>
+                  <a href="https://supabase.com/" className="hover:text-white transition-colors">
+                    Supabase
+                  </a>
+                </li>
+                <li>
+                  <a href="https://www.mapbox.com/" className="hover:text-white transition-colors">
+                    Mapbox GL JS
+                  </a>
+                </li>
+                <li>
+                  <a href="https://vercel.com/" className="hover:text-white transition-colors">
+                    Vercel Platform
+                  </a>
+                </li>
+                <li>
+                  <a href="https://tailwindcss.com/" className="hover:text-white transition-colors">
+                    Tailwind CSS
                   </a>
                 </li>
               </ul>
             </div>
           </div>
 
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center">
-            <p className="text-gray-400 text-sm">
-              © 2025 OrbitEdge Global by AIBA Space Web. NASA Space Apps Challenge 2025 Submission.
-            </p>
+          <div className="border-t border-gray-800 mt-8 pt-8">
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+              <p className="text-gray-400 text-sm">
+                © 2025 OrbitEdge Global by AIBA Space Web • Army IBA Sylhet • NASA Space Apps Challenge 2025
+              </p>
+              <div className="flex items-center gap-4 text-sm text-gray-400">
+                <span>Learn • Launch • Lead</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-[#4e6aff] rounded-full animate-pulse"></div>
+                  <span>Powered by NASA Open Data</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </footer>

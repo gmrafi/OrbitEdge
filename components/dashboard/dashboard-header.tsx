@@ -67,6 +67,14 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
                 Satellites
               </Link>
               <Link
+                href="/dashboard/map"
+                className={`font-medium transition-colors ${
+                  isActive("/dashboard/map") ? "text-[#4e6aff]" : "text-gray-600 hover:text-[#4e6aff]"
+                }`}
+              >
+                Map
+              </Link>
+              <Link
                 href="/dashboard/analytics"
                 className={`font-medium transition-colors ${
                   isActive("/dashboard/analytics") ? "text-[#4e6aff]" : "text-gray-600 hover:text-[#4e6aff]"
