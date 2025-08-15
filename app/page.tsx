@@ -22,7 +22,7 @@ export default async function HomePage() {
                 <Satellite className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900 font-space-grotesk">OrbitEdge Global</h1>
+                <h1 className="text-xl font-bold text-gray-900 font-space-grotesk">OrbitBiZ</h1>
                 <p className="text-xs text-gray-600">Pioneering Sustainable LEO Commerce</p>
               </div>
             </div>
@@ -54,10 +54,11 @@ export default async function HomePage() {
       <section className="py-20 px-4">
         <div className="container mx-auto text-center max-w-4xl">
           <Badge className="mb-6 bg-[#4e6aff]/10 text-[#4e6aff] border-[#4e6aff]/20">
-            NASA Space Apps Challenge 2025
+            AIBA SpaceWeb (Sylhet) - NASA Space Apps Challenge 2025
           </Badge>
           <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 font-space-grotesk leading-tight">
-            Satellite Inspection-as-a-Service for <span className="text-[#4e6aff]">Sustainable Law Earth Orbit (LEO)</span>
+            Satellite Inspection-as-a-Service for{" "}
+            <span className="text-[#4e6aff]">Sustainable Low Earth Orbit (LEO)</span>
           </h1>
           <p className="text-xl text-gray-600 mb-8 leading-relaxed">
             Real-time satellite monitoring, risk analysis, and compliance solutions for the $447B global space economy.
@@ -317,7 +318,7 @@ export default async function HomePage() {
                 <div className="w-8 h-8 bg-[#4e6aff] rounded-lg flex items-center justify-center">
                   <Satellite className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-lg font-bold font-space-grotesk">OrbitEdge Global</span>
+                <span className="text-lg font-bold font-space-grotesk">OrbitBiZ</span>
               </div>
               <p className="text-gray-400 text-sm">
                 Pioneering sustainable LEO commerce through innovative satellite inspection services.
@@ -453,7 +454,7 @@ export default async function HomePage() {
           <div className="border-t border-gray-800 mt-8 pt-8">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
               <p className="text-gray-400 text-sm">
-                © 2025 OrbitEdge Global by AIBA Space Web • Army IBA Sylhet • NASA Space Apps Challenge 2025
+                © 2025 OrbitBiZ by AIBA Space Web • Army IBA Sylhet • NASA Space Apps Challenge 2025
               </p>
               <div className="flex items-center gap-4 text-sm text-gray-400">
                 <span>Learn • Launch • Lead</span>
