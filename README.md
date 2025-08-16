@@ -1,6 +1,8 @@
 # OrbitBiZ: Pioneering Sustainable LEO Commerce
 
-[![NASA Space Apps Challenge 2025](https://img.shields.io/badge/NASA%20Space%20Apps-Challenge%202025-blue?style=for-the-badge&logo=nasa)]
+[![NASA Space Apps Challenge 2025](https://img.shields.io/badge/NASA%20Space%20Apps-Challenge%202025-blue?style=for-the-badge&logo=nasa)](https://www.spaceappschallenge.org/)
+[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/spacwwebs-projects/v0-orbit-edge-global-project)
+[![Built with v0](https://img.shields.io/badge/Built%20with-v0.app-black?style=for-the-badge)](https://v0.app/chat/projects/NywsZcCrXYV)
 
 ## 🚀 Project Overview
 
@@ -12,12 +14,13 @@
 - **Target Market**: $447B global space economy
 - **Location**: Sylhet, Bangladesh
 
-## 👥 Team: AIBA SpaceWeb
+## 👥 Team: AIBA Space Web
 
-- **Md Golam Mubasshir Rafi** 
-- **Mashrura Meshkat Punno** 
-- **Al Razi** 
-- **Rukaiya Binte Amin** 
+**Army IBA Sylhet - BBA Program**
+- **Md Golam Mubasshir Rafi** - Team Lead & Business Analytics
+- **Mashrura Meshkat Punno** - Financial Modeling & Strategy
+- **Al Razi** - Market Analysis & Operations
+- **Rukaiya Binte Amin** - Risk Assessment & Compliance
 
 ## 🛰️ Key Features
 
@@ -118,7 +121,7 @@
 
 1. **Clone the repository**
    \`\`\`bash
-   git clone 
+   git clone https://github.com/aiba-space-web/orbitbiz-global.git
    cd orbitbiz-global
    \`\`\`
 
@@ -254,19 +257,21 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🏅 Awards & Recognition
 
-
+- **NASA Space Apps Challenge 2025** - Participant
+- **Sylhet Location** - Local competition entry
+- **Global Nomination** - Eligible for worldwide recognition
 
 ## 📞 Connect With Us
 
-- **GitHub**: 
+- **GitHub**: [github.com/aiba-space-web](https://github.com/aiba-space-web)
 - **NASA Space Apps**: [Sylhet Location](https://www.spaceappschallenge.org/2025/locations/sylhet/)
-
+- **Submission Form**: [Google Form](https://forms.gle/k2XS6c6nDrjmdwgX9)
 
 ## 🚀 Deployment
 
-**Live Demo**: 
+**Live Demo**: [https://vercel.com/spacwwebs-projects/v0-orbit-edge-global-project](https://vercel.com/spacwwebs-projects/v0-orbit-edge-global-project)
 
-**Continue Development**: 
+**Continue Development**: [https://v0.app/chat/projects/NywsZcCrXYV](https://v0.app/chat/projects/NywsZcCrXYV)
 
 ---
 
