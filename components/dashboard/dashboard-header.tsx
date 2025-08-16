@@ -18,7 +18,7 @@ import { usePathname } from "next/navigation"
 interface DashboardHeaderProps {
   user: {
     email?: string
-  }
+  } | null // Allow null user to prevent build errors
 }
 
 export default function DashboardHeader({ user }: DashboardHeaderProps) {
@@ -42,7 +42,7 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
                 <Satellite className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">OrbitEdge Global</h1>
+                <h1 className="text-xl font-bold text-gray-900">OrbitBiZ</h1> {/* Updated company name */}
                 <p className="text-xs text-gray-600">Dashboard</p>
               </div>
             </Link>
@@ -123,10 +123,11 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
                 <Button variant="ghost" className="flex items-center gap-2 p-2">
                   <Avatar className="w-8 h-8">
                     <AvatarFallback className="bg-[#4e6aff] text-white text-sm">
-                      {user.email?.charAt(0).toUpperCase()}
+                      {user?.email?.charAt(0).toUpperCase() || "U"} {/* Added null check and fallback */}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="hidden md:block text-sm font-medium">{user.email?.split("@")[0]}</span>
+                  <span className="hidden md:block text-sm font-medium">{user?.email?.split("@")[0] || "User"}</span>{" "}
+                  {/* Added null check and fallback */}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
