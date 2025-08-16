@@ -1,6 +1,9 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { createClient } from "@/lib/supabase/server"
+import { redirect } from "next/navigation"
+import DashboardHeader from "@/components/dashboard/dashboard-header"
 
 interface SatelliteData {
   id: string
@@ -258,7 +261,25 @@ const generateMockInfrastructure = () => {
   ]
 }
 
-export default function MapPage() {
+export default async function MapPage() {
+  const supabase = createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    redirect("/auth/login")
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <DashboardHeader user={user} />
+      <MapPageClient />
+    </div>
+  )
+}
+
+function MapPageClient() {
   const mapContainer = useRef<HTMLDivElement>(null)
   const map = useRef<any>(null)
   const [mapLoaded, setMapLoaded] = useState(false)
@@ -586,12 +607,84 @@ export default function MapPage() {
   ]
 
   useEffect(() => {
-    setSatellites(mockSatellites)
-    setDebris(mockDebris)
-    setBusinessOpportunities(mockBusinessOpportunities)
-    setInfrastructure(mockInfrastructure)
-    setLaunchSites(mockLaunchSites)
-    setTourismRoutes(mockTourismRoutes)
+    fetchComprehensiveNASAData()
+    // Set up real-time updates every 2 minutes
+    const interval = setInterval(fetchComprehensiveNASAData, 120000)
+    return () => clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    if (!mapContainer.current) return
+
+    const initializeMap = async () => {
+      try {
+        if (typeof window === "undefined") return
+
+        const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
+        if (!mapboxToken) {
+          console.error("[v0] Mapbox token not configured")
+          return
+        }
+
+        const script = document.createElement("script")
+        script.src = "https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.js"
+        script.onload = () => {
+          try {
+            const link = document.createElement("link")
+            link.href = "https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css"
+            link.rel = "stylesheet"
+            document.head.appendChild(link)
+
+            const mapboxgl = (window as any).mapboxgl
+            if (!mapboxgl) {
+              console.error("[v0] Mapbox GL JS failed to load")
+              return
+            }
+
+            mapboxgl.accessToken = mapboxToken
+
+            map.current = new mapboxgl.Map({
+              container: mapContainer.current,
+              style: "mapbox://styles/mapbox/satellite-v9",
+              center: [0, 0],
+              zoom: 2,
+              projection: "globe",
+            })
+
+            map.current.on("load", () => {
+              console.log("[v0] Mapbox map loaded successfully")
+            })
+
+            map.current.on("error", (e: any) => {
+              console.error("[v0] Mapbox error:", e)
+            })
+          } catch (error) {
+            console.error("[v0] Error setting up Mapbox:", error)
+          }
+        }
+
+        script.onerror = () => {
+          console.error("[v0] Failed to load Mapbox GL JS script")
+        }
+
+        document.body.appendChild(script)
+      } catch (error) {
+        console.error("[v0] Error initializing map:", error)
+      }
+    }
+
+    initializeMap()
+
+    return () => {
+      try {
+        const script = document.querySelector('script[src="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.js"]')
+        if (script && script.parentNode) {
+          script.parentNode.removeChild(script)
+        }
+      } catch (error) {
+        console.error("[v0] Error cleaning up map script:", error)
+      }
+    }
   }, [])
 
   const fetchComprehensiveNASAData = async () => {
@@ -1086,52 +1179,4 @@ export default function MapPage() {
       console.error("Error fetching real-time data:", error)
     }
   }
-
-  useEffect(() => {
-    //fetchComprehensiveNASAData()
-    // Set up real-time updates every 2 minutes
-    //const interval = setInterval(fetchComprehensiveNASAData, 120000)
-    //return () => clearInterval(interval)
-  }, [])
-
-  useEffect(() => {
-    if (!mapContainer.current) return
-
-    const initializeMap = async () => {
-      try {
-        const script = document.createElement("script")
-        script.src = "https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.js"
-        script.onload = () => {
-          const link = document.createElement("link")
-          link.href = "https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css"
-          link.rel = "stylesheet"
-          document.head.appendChild(link)
-
-          const mapboxgl = (window as any).mapboxgl
-          mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
-
-          map.current = new mapboxgl.Map({
-            container: mapContainer.current,
-            style: "mapbox://styles/mapbox/satellite-v9",
-          })
-        }
-        document.body.appendChild(script)
-      } catch (error) {
-        console.error("Error initializing map:", error)
-      }
-    }
-
-    initializeMap()
-
-    return () => {
-      const script = document.querySelector('script[src="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.js"]')
-      if (script) {
-        document.body.removeChild(script)
-      }
-      const link = document.querySelector('link[href="https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css"]')
-      if (link) {
-        document.head.removeChild(link)
-      }
-    }
-  }, [])
 }
