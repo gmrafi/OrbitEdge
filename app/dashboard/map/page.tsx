@@ -1,8 +1,6 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { createClient } from "@/lib/supabase/server"
-import { redirect } from "next/navigation"
 import DashboardHeader from "@/components/dashboard/dashboard-header"
 
 interface SatelliteData {
@@ -261,19 +259,10 @@ const generateMockInfrastructure = () => {
   ]
 }
 
-export default async function MapPage() {
-  const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect("/auth/login")
-  }
-
+export default function MapPage() {
   return (
     <div className="min-h-screen bg-gray-50">
-      <DashboardHeader user={user} />
+      <DashboardHeader user={null} />
       <MapPageClient />
     </div>
   )
@@ -396,7 +385,6 @@ function MapPageClient() {
       status: "active",
       type: "earth-observation",
       country: "EU",
-      launchDate: "2015-06-23",
       operator: "ESA",
       constellation: "Copernicus",
       position: {
@@ -949,8 +937,8 @@ function MapPageClient() {
             longitude: Number.parseFloat(issData.iss_position.longitude),
             altitude: 408,
             velocity: 7660,
-            status: "active",
-            type: "scientific",
+            status: "active" as const,
+            type: "scientific" as const,
             country: "International",
             launchDate: "1998-11-20",
             operator: "NASA/Roscosmos/ESA",
