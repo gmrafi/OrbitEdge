@@ -385,6 +385,7 @@ function MapPageClient() {
   const [debrisData, setDebrisData] = useState<any[]>([])
   const mapRef = useRef<any>(null)
   const mapContainerRef = useRef<HTMLDivElement | null>(null)
+  const [allSatGeoJSON, setAllSatGeoJSON] = useState<any>(null)
   const [earthquakesGeoJSON, setEarthquakesGeoJSON] = useState<any>(null)
   const [eonetEventsGeoJSON, setEonetEventsGeoJSON] = useState<any>(null)
   const [issPosition, setIssPosition] = useState<{ latitude: number; longitude: number } | null>(null)
@@ -484,6 +485,15 @@ function MapPageClient() {
         const satsJson = await satsRes.json()
         apiSatellites = satsJson?.data?.satellites || []
       }
+
+      // Fetch many active satellites live positions (clustered layer)
+      try {
+        const allRes = await fetch("/api/nasa/all-positions?group=active&limit=2000")
+        if (allRes.ok) {
+          const allJson = await allRes.json()
+          if (allJson?.data) setAllSatGeoJSON(allJson.data)
+        }
+      } catch {}
 
       // Debris
       const debrisRes = await fetch(
@@ -811,6 +821,34 @@ function MapPageClient() {
       ;(map.getSource(sourceId) as any).setData(data)
     }
   }, [issPosition])
+
+  // All active satellites clustered overlay
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !allSatGeoJSON) return
+
+    const sourceId = "all-sats-source"
+    const clusterLayer = "all-sats-clusters"
+    const countLayer = "all-sats-count"
+    const pointsLayer = "all-sats-points"
+
+    const apply = () => {
+      if (!map.getSource(sourceId)) {
+        map.addSource(sourceId, { type: "geojson", data: allSatGeoJSON, cluster: true, clusterMaxZoom: 4, clusterRadius: 25 } as any)
+        map.addLayer({ id: clusterLayer, type: "circle", source: sourceId, filter: ["has", "point_count"], paint: { "circle-color": ["step", ["get", "point_count"], "#4e6aff", 100, "#7c3aed", 500, "#ea580c"], "circle-radius": ["step", ["get", "point_count"], 8, 100, 12, 500, 16], "circle-opacity": 0.7 } })
+        map.addLayer({ id: countLayer, type: "symbol", source: sourceId, filter: ["has", "point_count"], layout: { "text-field": ["get", "point_count_abbreviated"], "text-size": 10 }, paint: { "text-color": "#fff" } })
+        map.addLayer({ id: pointsLayer, type: "circle", source: sourceId, filter: ["!has", "point_count"], paint: { "circle-color": "#1d4ed8", "circle-radius": 3, "circle-stroke-width": 1, "circle-stroke-color": "#fff" } })
+      } else {
+        ;(map.getSource(sourceId) as any).setData(allSatGeoJSON)
+      }
+    }
+
+    if (map.isStyleLoaded()) apply()
+    else {
+      map.once("style.load", apply)
+      map.once("load", apply)
+    }
+  }, [allSatGeoJSON])
 
   const toggleMapStyle = () => {
     setMapStyle(mapStyle === "satellite-v9" ? "streets-v12" : "satellite-v9")
