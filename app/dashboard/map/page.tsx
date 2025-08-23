@@ -630,42 +630,51 @@ function MapPageClient() {
     const layerId = "satellite-points-layer"
     const labelLayerId = "satellite-labels-layer"
 
-    const geojson = {
-      type: "FeatureCollection",
-      features: satellites.map((s) => ({
-            type: "Feature",
-        geometry: { type: "Point", coordinates: [s.longitude, s.latitude] },
-        properties: { title: s.name },
-      })),
-    }
+    const applyLayers = () => {
+      const geojson = {
+        type: "FeatureCollection",
+        features: satellites.map((s) => ({
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [s.longitude, s.latitude] },
+          properties: { title: s.name },
+        })),
+      }
 
-    if (!map.getSource(sourceId)) {
-      map.addSource(sourceId, { type: "geojson", data: geojson as any })
+      if (!map.getSource(sourceId)) {
+        map.addSource(sourceId, { type: "geojson", data: geojson as any })
         map.addLayer({
-        id: layerId,
+          id: layerId,
           type: "symbol",
-        source: sourceId,
+          source: sourceId,
           layout: {
             "icon-image": "rocket-15",
             "icon-size": 1.2,
-        },
-      })
-      map.addLayer({
-        id: labelLayerId,
-        type: "symbol",
-        source: sourceId,
-        layout: {
+          },
+        })
+        map.addLayer({
+          id: labelLayerId,
+          type: "symbol",
+          source: sourceId,
+          layout: {
             "text-field": showSatelliteLabels ? ["get", "title"] : "",
             "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
             "text-anchor": "top",
             "text-offset": [0, 1.2],
             "text-size": 10,
           },
-        paint: { "text-color": "#fff" },
+          paint: { "text-color": "#fff" },
         })
       } else {
-      ;(map.getSource(sourceId) as any).setData(geojson)
-      map.setLayoutProperty(labelLayerId, "text-field", showSatelliteLabels ? ["get", "title"] : "")
+        ;(map.getSource(sourceId) as any).setData(geojson)
+        map.setLayoutProperty(labelLayerId, "text-field", showSatelliteLabels ? ["get", "title"] : "")
+      }
+    }
+
+    if (typeof map.isStyleLoaded === "function" ? map.isStyleLoaded() : true) {
+      applyLayers()
+    } else {
+      map.once("style.load", applyLayers)
+      map.once("load", applyLayers)
     }
   }, [satellites, showSatelliteLabels])
 

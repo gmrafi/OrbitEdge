@@ -27,15 +27,27 @@ export default async function HomePage() {
               </div>
             </div>
             <nav className="hidden md:flex items-center gap-6">
-              <a href="#features" className="text-gray-600 hover:text-[#4e6aff] transition-colors">
-                Features
-              </a>
-              <a href="#pricing" className="text-gray-600 hover:text-[#4e6aff] transition-colors">
-                Pricing
-              </a>
-              <a href="#about" className="text-gray-600 hover:text-[#4e6aff] transition-colors">
-                About
-              </a>
+              <Link href="/dashboard" className="text-gray-600 hover:text-[#4e6aff] transition-colors">
+                Overview
+              </Link>
+              <Link href="/dashboard/satellites" className="text-gray-600 hover:text-[#4e6aff] transition-colors">
+                Satellites
+              </Link>
+              <Link href="/dashboard/map" className="text-gray-600 hover:text-[#4e6aff] transition-colors">
+                Map
+              </Link>
+              <Link href="/dashboard/analytics" className="text-gray-600 hover:text-[#4e6aff] transition-colors">
+                Analytics
+              </Link>
+              <Link href="/dashboard/chat" className="text-gray-600 hover:text-[#4e6aff] transition-colors">
+                Chat
+              </Link>
+              <Link href="/dashboard/compliance" className="text-gray-600 hover:text-[#4e6aff] transition-colors">
+                Compliance
+              </Link>
+              <Link href="/dashboard/learn" className="text-gray-600 hover:text-[#4e6aff] transition-colors">
+                Learn
+              </Link>
               {user ? (
                 <Link href="/dashboard">
                   <Button className="bg-[#4e6aff] hover:bg-[#3d54e6] text-white">Dashboard</Button>
