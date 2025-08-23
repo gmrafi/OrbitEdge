@@ -1,0 +1,5 @@
+[33mea1f020[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m feat: update satellite.js to version 6.0.1 and implement live satellite positions
+[33m8da11e5[m refactor: improve map layer application logic
+[33mac72fcc[m feat: integrate satellite.js and enhance NASA data handling
+[33m8f0b989[m fix: resolve double header and enhance satellite data
+[33m207754c[m fix: handle null user in DashboardHeader

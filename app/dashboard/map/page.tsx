@@ -100,7 +100,7 @@ interface TourismRoute {
   startLng: number
   endLat: number
   endLng: number
-  duration: number
+  duration: number 
   price: number
   difficulty: "beginner" | "intermediate" | "advanced"
   provider: string
