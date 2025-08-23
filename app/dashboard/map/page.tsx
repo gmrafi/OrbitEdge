@@ -107,7 +107,7 @@ interface TourismRoute {
   nextAvailable: string
 }
 
-const NASA_EARTH_DATA_TOKEN = process.env.NEXT_PUBLIC_NASA_EARTH_DATA_TOKEN
+// Tokens must not be used directly on the client. Use internal API routes instead.
 
 const NASA_ENDPOINTS = {
   // Core NASA APIs
@@ -377,113 +377,124 @@ function MapPageClient() {
   const [showOrbitalPaths, setShowOrbitalPaths] = useState(true)
   const [showSatelliteLabels, setShowSatelliteLabels] = useState(true)
   const [showGroundTracks, setShowGroundTracks] = useState(false)
+  const [showEarthquakes, setShowEarthquakes] = useState(true)
+  const [showEonetEvents, setShowEonetEvents] = useState(true)
   const [nasaData, setNasaData] = useState<any>({})
   const [starlinkSatellites, setStarlinkSatellites] = useState<any[]>([])
   const [internetCoverageData, setInternetCoverageData] = useState<any>({})
   const [debrisData, setDebrisData] = useState<any[]>([])
   const mapRef = useRef<any>(null)
+  const mapContainerRef = useRef<HTMLDivElement | null>(null)
+  const [earthquakesGeoJSON, setEarthquakesGeoJSON] = useState<any>(null)
+  const [eonetEventsGeoJSON, setEonetEventsGeoJSON] = useState<any>(null)
+  const [issPosition, setIssPosition] = useState<{ latitude: number; longitude: number } | null>(null)
 
   const fetchComprehensiveNASAData = useCallback(async () => {
-    const token = process.env.NEXT_PUBLIC_NASA_EARTH_DATA_TOKEN
-    if (!token) {
-      console.log("[v0] NASA Earth Data token not available")
-      return
-    }
-
-    console.log("[v0] Fetching comprehensive NASA data with token")
-
     try {
-      // Fetch NASA data
-      const nasaEndpoints = [
-        {
-          name: "cmrGranules",
-          url: "https://cmr.earthdata.nasa.gov/search/granules.json?short_name=MCD12Q1&version=061&page_size=100",
-        },
-        {
-          name: "cmrCollections",
-          url: "https://cmr.earthdata.nasa.gov/search/collections.json?keyword=satellite&page_size=100",
-        },
-        { name: "eonetEvents", url: "https://eonet.gsfc.nasa.gov/api/v3/events?limit=100" },
-        { name: "issPosition", url: "http://api.open-notify.org/iss-now.json" },
-        { name: "celestrakTLE", url: "https://celestrak.org/NORAD/elements/gp.php?GROUP=active&FORMAT=json" },
-        { name: "earthquakes", url: "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&limit=200" },
-        { name: "spaceWeather", url: "https://services.swpc.noaa.gov/json/goes/primary/magnetometers-6-hour.json" },
-        {
-          name: "apod",
-          url: `https://api.nasa.gov/planetary/apod?api_key=${process.env.NEXT_PUBLIC_NASA_API_KEY || "DEMO_KEY"}`,
-        },
-      ]
-
-      const starlinkEndpoints = [
-        { name: "starlinkTLE", url: "https://celestrak.org/NORAD/elements/gp.php?GROUP=starlink&FORMAT=json" },
-        { name: "starlinkSafety", url: "https://api.starlink.com/public/satellites" }, // Note: This might need authentication
-        { name: "onewebTLE", url: "https://celestrak.org/NORAD/elements/gp.php?GROUP=oneweb&FORMAT=json" },
-      ]
-
-      const debrisEndpoints = [
-        { name: "debrisTLE", url: "https://celestrak.org/NORAD/elements/gp.php?GROUP=debris&FORMAT=json" },
-        { name: "rocketBodies", url: "https://celestrak.org/NORAD/elements/gp.php?GROUP=rocket-bodies&FORMAT=json" },
-      ]
-
       const responses: any = {}
 
-      // Fetch NASA data
-      for (const endpoint of nasaEndpoints) {
-        try {
-          const headers: any = {}
-          if (endpoint.name === "cmrGranules" || endpoint.name === "cmrCollections") {
-            headers["Authorization"] = `Bearer ${token}`
-          }
-
-          const response = await fetch(endpoint.url, { headers })
-          if (response.ok) {
-            const data = await response.json()
-            responses[endpoint.name] = Array.isArray(data)
-              ? data.length
-              : data.feed?.entry?.length ||
-                data.events?.length ||
-                data.features?.length ||
-                (data.iss_position ? "Available" : "Not available") ||
-                1
-          } else {
-            responses[endpoint.name] = 0
-          }
-        } catch (error) {
-          responses[endpoint.name] = 0
-        }
+      // CMR granules
+      const granulesRes = await fetch(
+        "/api/nasa/earth-data?endpoint=cmr-granules&params=" +
+          encodeURIComponent("short_name=MCD12Q1&version=061&page_size=50"),
+      )
+      if (granulesRes.ok) {
+        const data = await granulesRes.json()
+        responses.cmrGranules = data?.feed?.entry?.length || data?.items?.length || 0
       }
 
-      const starlinkData: any[] = []
-      for (const endpoint of starlinkEndpoints) {
-        try {
-          const response = await fetch(endpoint.url)
-          if (response.ok) {
-            const data = await response.json()
-            if (Array.isArray(data)) {
-              starlinkData.push(...data.slice(0, 100)) // Limit to prevent overwhelming
+      // CMR collections
+      const collectionsRes = await fetch(
+        "/api/nasa/earth-data?endpoint=cmr-collections&params=" + encodeURIComponent("keyword=satellite&page_size=50"),
+      )
+      if (collectionsRes.ok) {
+        const data = await collectionsRes.json()
+        responses.cmrCollections = data?.feed?.entry?.length || data?.items?.length || 0
+      }
+
+      // Public data via internal proxy
+      const [eventsRes, issRes, tleRes, quakesRes, spaceWxRes, apodRes] = await Promise.all([
+        fetch("/api/nasa/public-data?endpoint=eonet-events&params=" + encodeURIComponent("limit=100")),
+        fetch("/api/nasa/public-data?endpoint=iss-position"),
+        fetch("/api/nasa/public-data?endpoint=celestrak-tle"),
+        fetch(
+          "/api/nasa/public-data?endpoint=usgs-earthquakes&params=" +
+            encodeURIComponent("format=geojson&limit=200"),
+        ),
+        fetch("/api/nasa/public-data?endpoint=noaa-space-weather"),
+        fetch("/api/nasa/public-data?endpoint=nasa-apod"),
+      ])
+
+      if (eventsRes.ok) {
+        const data = await eventsRes.json()
+        responses.eonetEvents = data?.events?.length || 0
+        // Convert to GeoJSON (use latest geometry for each event)
+        const features = (data?.events || [])
+          .map((ev: any) => {
+            const geos = ev?.geometry || []
+            const last = geos[geos.length - 1]
+            const coords = last?.coordinates
+            if (!coords || coords.length < 2) return null
+            return {
+              type: "Feature",
+              geometry: { type: "Point", coordinates: [coords[0], coords[1]] },
+              properties: {
+                id: ev.id,
+                title: ev.title,
+                category: ev.categories?.[0]?.title || "Event",
+                date: last?.date || ev?.geometry?.[0]?.date,
+              },
             }
-          }
-        } catch (error) {
-          console.log(`[v0] Error fetching ${endpoint.name}:`, error)
+          })
+          .filter(Boolean)
+        setEonetEventsGeoJSON({ type: "FeatureCollection", features })
+      }
+      if (issRes.ok) {
+        const data = await issRes.json()
+        responses.issPosition = data?.iss_position ? "Available" : "Not available"
+        if (data?.iss_position) {
+          setIssPosition({
+            latitude: Number.parseFloat(data.iss_position.latitude),
+            longitude: Number.parseFloat(data.iss_position.longitude),
+          })
         }
       }
-
-      const debrisInfo: any[] = []
-      for (const endpoint of debrisEndpoints) {
-        try {
-          const response = await fetch(endpoint.url)
-          if (response.ok) {
-            const data = await response.json()
-            if (Array.isArray(data)) {
-              debrisInfo.push(...data.slice(0, 200)) // Limit debris objects
-            }
-          }
-        } catch (error) {
-          console.log(`[v0] Error fetching ${endpoint.name}:`, error)
-        }
+      let starlinkData: any[] = []
+      if (tleRes.ok) {
+        const data = await tleRes.json()
+        if (Array.isArray(data)) starlinkData = data.slice(0, 100)
+      }
+      if (quakesRes.ok) {
+        const data = await quakesRes.json()
+        responses.earthquakes = data?.features?.length || 0
+        setEarthquakesGeoJSON(data)
+      }
+      if (spaceWxRes.ok) {
+        const data = await spaceWxRes.json()
+        responses.spaceWeather = Array.isArray(data) ? data.length : 0
+      }
+      if (apodRes.ok) {
+        responses.apod = "Available"
       }
 
-      console.log("[v0] NASA API responses:", responses)
+      // Internal satellite positions (ISS + a few)
+      let apiSatellites: any[] = []
+      const satsRes = await fetch("/api/nasa/satellites?ids=25544,43013,48274,47967")
+      if (satsRes.ok) {
+        const satsJson = await satsRes.json()
+        apiSatellites = satsJson?.data?.satellites || []
+      }
+
+      // Debris
+      const debrisRes = await fetch(
+        "/api/nasa/public-data?endpoint=celestrak-tle&params=" + encodeURIComponent("GROUP=debris&FORMAT=json"),
+      )
+      let debrisInfo: any[] = []
+      if (debrisRes.ok) {
+        const data = await debrisRes.json()
+        if (Array.isArray(data)) debrisInfo = data.slice(0, 200)
+      }
+
       setNasaData(responses)
       setStarlinkSatellites(starlinkData)
       setDebrisData(debrisInfo)
@@ -502,7 +513,7 @@ function MapPageClient() {
           speed: "50-150 Mbps",
         },
         kuiper: {
-          satellites: 0, // Not yet deployed
+          satellites: 0,
           coverage: "Planned global coverage",
           latency: "30ms (planned)",
           speed: "400 Mbps (planned)",
@@ -510,34 +521,70 @@ function MapPageClient() {
       }
       setInternetCoverageData(coverageData)
 
-      // Generate enhanced mock satellites with real orbital data
-      const enhancedSatellites = generateEnhancedMockSatellites(50, starlinkData, debrisInfo)
-      setSatellites(enhancedSatellites)
-      console.log("[v0] Updated satellites count:", enhancedSatellites.length)
-      console.log("[v0] NASA data fetch completed successfully")
+      // Use internal API satellites if available; otherwise fallback to starlink sample
+      if (apiSatellites.length > 0) {
+        const mapped = apiSatellites.map((sat: any, idx: number) => ({
+          id: sat.satelliteId || `api-${idx}`,
+          name: sat.name || `Satellite ${idx + 1}`,
+          latitude: sat.position?.latitude ?? 0,
+          longitude: sat.position?.longitude ?? 0,
+          altitude: sat.altitude ?? 500,
+          velocity: sat.position?.velocity ?? 7.5,
+          status: "active" as const,
+          type: "communication",
+          country: "",
+          launchDate: sat.epoch || "",
+          operator: "",
+        }))
+        setSatellites(mapped as any)
+      } else {
+        const fallbackSatellites = (starlinkData.slice(0, 20) as any[]).map((s, idx) => ({
+          id: `starlink-${idx}`,
+          name: s.OBJECT_NAME || `Starlink-${idx}`,
+          latitude: (Math.random() - 0.5) * 180,
+          longitude: (Math.random() - 0.5) * 360,
+          altitude: 500 + Math.random() * 300,
+          velocity: 7.4 + Math.random() * 0.6,
+          status: "active" as const,
+          type: "communication",
+          country: "",
+          launchDate: "",
+          operator: "",
+        }))
+        setSatellites(fallbackSatellites as any)
+      }
     } catch (error) {
       console.error("[v0] Error fetching NASA data:", error)
-      // Fallback to mock data
-      const mockSatellites = generateEnhancedMockSatellites(50, [], [])
-      setSatellites(mockSatellites)
     }
   }, [])
 
   useEffect(() => {
     fetchComprehensiveNASAData()
-    const intervalId = setInterval(fetchComprehensiveNASAData, 60000) // Update every 60 seconds
-
+    const intervalId = setInterval(fetchComprehensiveNASAData, 60000)
     return () => clearInterval(intervalId)
   }, [fetchComprehensiveNASAData])
 
   useEffect(() => {
     if (typeof window === "undefined") return
 
-    const mapboxgl = (window as any).mapboxgl
-    if (!mapboxgl) {
-      console.error("[v0] Mapbox GL JS failed to load")
-      return
-    }
+    const ensureMapbox = async () => {
+      if (!(window as any).mapboxgl) {
+        if (!document.querySelector('link[href*="mapbox-gl"]')) {
+          const link = document.createElement("link")
+          link.rel = "stylesheet"
+          link.href = "https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css"
+          document.head.appendChild(link)
+        }
+        await new Promise<void>((resolve) => {
+          const script = document.createElement("script")
+          script.src = "https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.js"
+          script.onload = () => resolve()
+          document.head.appendChild(script)
+        })
+      }
+
+      const mapboxgl = (window as any).mapboxgl
+      if (!mapboxgl) return
 
     mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
     if (!mapboxgl.accessToken) {
@@ -546,86 +593,215 @@ function MapPageClient() {
     }
 
     const map = new mapboxgl.Map({
-      container: mapRef.current,
-      style: mapStyle === "satellite-v9" ? "mapbox://styles/mapbox/satellite-v9" : "mapbox://styles/mapbox/streets-v12",
+      container: mapContainerRef.current!,
+        style:
+          mapStyle === "satellite-v9"
+            ? "mapbox://styles/mapbox/satellite-v9"
+            : "mapbox://styles/mapbox/streets-v12",
       center: [0, 0],
       zoom: 2,
       projection: "globe",
     })
 
     map.on("load", () => {
-      console.log("[v0] Mapbox map loaded successfully")
       map.setFog({})
-
-      if (is3D) {
-        map.setPitch(40)
-      }
-
-      if (autoRotate) {
-        map.rotateTo((map.getBearing() + 180) % 360, { duration: 20000 })
-      }
-    })
-
-    map.on("style.load", () => {
-      map.setFog({})
-    })
+        if (is3D) map.setPitch(40)
+        if (autoRotate) map.rotateTo((map.getBearing() + 180) % 360, { duration: 20000 })
+      })
+      map.on("style.load", () => map.setFog({}))
 
     mapRef.current = map
+    }
 
-    return () => map.remove()
+    ensureMapbox()
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove()
+        mapRef.current = null
+      }
+    }
   }, [mapStyle, is3D, autoRotate])
 
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
 
-    satellites.forEach((satellite) => {
-      if (!map.getSource(satellite.id)) {
-        map.addSource(satellite.id, {
-          type: "geojson",
-          data: {
-            type: "Feature",
-            geometry: {
-              type: "Point",
-              coordinates: [satellite.longitude, satellite.latitude],
-            },
-            properties: {
-              title: satellite.name,
-            },
-          },
-        })
+    const sourceId = "satellite-points-source"
+    const layerId = "satellite-points-layer"
+    const labelLayerId = "satellite-labels-layer"
 
+    const geojson = {
+      type: "FeatureCollection",
+      features: satellites.map((s) => ({
+            type: "Feature",
+        geometry: { type: "Point", coordinates: [s.longitude, s.latitude] },
+        properties: { title: s.name },
+      })),
+    }
+
+    if (!map.getSource(sourceId)) {
+      map.addSource(sourceId, { type: "geojson", data: geojson as any })
         map.addLayer({
-          id: satellite.id,
+        id: layerId,
           type: "symbol",
-          source: satellite.id,
+        source: sourceId,
           layout: {
             "icon-image": "rocket-15",
             "icon-size": 1.2,
+        },
+      })
+      map.addLayer({
+        id: labelLayerId,
+        type: "symbol",
+        source: sourceId,
+        layout: {
             "text-field": showSatelliteLabels ? ["get", "title"] : "",
             "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
             "text-anchor": "top",
             "text-offset": [0, 1.2],
             "text-size": 10,
           },
-          paint: {
-            "text-color": "#fff",
-          },
+        paint: { "text-color": "#fff" },
         })
       } else {
-        map.getSource(satellite.id).setData({
-          type: "Feature",
-          geometry: {
-            type: "Point",
-            coordinates: [satellite.longitude, satellite.latitude],
-          },
-          properties: {
-            title: satellite.name,
-          },
-        })
-      }
-    })
+      ;(map.getSource(sourceId) as any).setData(geojson)
+      map.setLayoutProperty(labelLayerId, "text-field", showSatelliteLabels ? ["get", "title"] : "")
+    }
   }, [satellites, showSatelliteLabels])
+
+  // Earthquakes overlay
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !earthquakesGeoJSON) return
+
+    const sourceId = "earthquakes-source"
+    const clustersId = "earthquakes-clusters"
+    const clusterCountId = "earthquakes-cluster-count"
+    const unclusteredId = "earthquakes-unclustered"
+
+    if (!map.getSource(sourceId)) {
+      map.addSource(sourceId, {
+        type: "geojson",
+        data: earthquakesGeoJSON,
+        cluster: true,
+        clusterMaxZoom: 8,
+        clusterRadius: 40,
+      } as any)
+
+      map.addLayer({
+        id: clustersId,
+        type: "circle",
+        source: sourceId,
+        filter: ["has", "point_count"],
+        paint: {
+          "circle-color": [
+            "step",
+            ["get", "point_count"],
+            "#51bbd6",
+            50,
+            "#f1f075",
+            200,
+            "#f28cb1",
+          ],
+          "circle-radius": ["step", ["get", "point_count"], 15, 50, 20, 200, 25],
+        },
+      })
+
+      map.addLayer({
+        id: clusterCountId,
+        type: "symbol",
+        source: sourceId,
+        filter: ["has", "point_count"],
+        layout: {
+          "text-field": ["get", "point_count_abbreviated"],
+          "text-font": ["DIN Offc Pro Medium", "Arial Unicode MS Bold"],
+          "text-size": 12,
+        },
+        paint: { "text-color": "#111" },
+      })
+
+      map.addLayer({
+        id: unclusteredId,
+        type: "circle",
+        source: sourceId,
+        filter: ["!has", "point_count"],
+        paint: {
+          "circle-color": "#ff5722",
+          "circle-radius": 6,
+          "circle-stroke-width": 1,
+          "circle-stroke-color": "#fff",
+        },
+      })
+    } else {
+      ;(map.getSource(sourceId) as any).setData(earthquakesGeoJSON)
+    }
+
+    map.setLayoutProperty(clustersId, "visibility", showEarthquakes ? "visible" : "none")
+    map.setLayoutProperty(clusterCountId, "visibility", showEarthquakes ? "visible" : "none")
+    map.setLayoutProperty(unclusteredId, "visibility", showEarthquakes ? "visible" : "none")
+  }, [earthquakesGeoJSON, showEarthquakes])
+
+  // EONET events overlay
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !eonetEventsGeoJSON) return
+
+    const sourceId = "eonet-events-source"
+    const layerId = "eonet-events-layer"
+
+    if (!map.getSource(sourceId)) {
+      map.addSource(sourceId, { type: "geojson", data: eonetEventsGeoJSON } as any)
+      map.addLayer({
+        id: layerId,
+        type: "symbol",
+        source: sourceId,
+        layout: {
+          "icon-image": "marker-15",
+          "icon-size": 1,
+          "text-field": ["get", "title"],
+          "text-offset": [0, 1.0],
+          "text-size": 10,
+        },
+        paint: { "text-color": "#222", "text-halo-color": "#fff", "text-halo-width": 1 },
+      })
+    } else {
+      ;(map.getSource(sourceId) as any).setData(eonetEventsGeoJSON)
+    }
+
+    map.setLayoutProperty(layerId, "visibility", showEonetEvents ? "visible" : "none")
+  }, [eonetEventsGeoJSON, showEonetEvents])
+
+  // ISS position overlay
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !issPosition) return
+
+    const sourceId = "iss-source"
+    const layerId = "iss-layer"
+    const data = {
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [issPosition.longitude, issPosition.latitude] },
+          properties: { title: "ISS" },
+        },
+      ],
+    }
+
+    if (!map.getSource(sourceId)) {
+      map.addSource(sourceId, { type: "geojson", data } as any)
+      map.addLayer({
+        id: layerId,
+        type: "symbol",
+        source: sourceId,
+        layout: { "icon-image": "rocket-15", "icon-size": 1.2, "text-field": ["get", "title"], "text-offset": [0, 1.0], "text-size": 10 },
+        paint: { "text-color": "#fff" },
+      })
+    } else {
+      ;(map.getSource(sourceId) as any).setData(data)
+    }
+  }, [issPosition])
 
   const toggleMapStyle = () => {
     setMapStyle(mapStyle === "satellite-v9" ? "streets-v12" : "satellite-v9")
@@ -737,6 +913,24 @@ function MapPageClient() {
               />
               <span className="text-sm text-gray-700">Ground Tracks</span>
             </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={showEarthquakes}
+                onChange={(e) => setShowEarthquakes(e.target.checked)}
+                className="rounded border-gray-300 text-[#4e6aff] focus:ring-[#4e6aff]"
+              />
+              <span className="text-sm text-gray-700">Earthquakes</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={showEonetEvents}
+                onChange={(e) => setShowEonetEvents(e.target.checked)}
+                className="rounded border-gray-300 text-[#4e6aff] focus:ring-[#4e6aff]"
+              />
+              <span className="text-sm text-gray-700">EONET Events</span>
+            </label>
           </div>
         </div>
 
@@ -745,7 +939,7 @@ function MapPageClient() {
           <div className="lg:col-span-3">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
               <div className="h-[600px] relative">
-                <div ref={mapRef} className="w-full h-full" />
+                <div ref={mapContainerRef} className="w-full h-full" />
 
                 {/* Live Status Indicator */}
                 <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-sm">

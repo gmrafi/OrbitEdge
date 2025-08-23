@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-const NASA_EARTH_DATA_TOKEN = process.env.NASA_EARTH_DATA_TOKEN // Server-side only, no NEXT_PUBLIC prefix
+const NASA_EARTH_DATA_TOKEN =
+  process.env.NASA_EARTH_DATA_TOKEN || process.env.NEXT_PUBLIC_NASA_EARTH_DATA_TOKEN // Prefer server var, fall back to public for local setups
 
 export async function GET(request: NextRequest) {
   try {

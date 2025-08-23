@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Satellite, RefreshCw, Globe, Zap, Map, Eye, Activity, Radar, MapPin, Clock, Orbit, Signal } from "lucide-react"
+import { Satellite, RefreshCw, Globe, Zap, Map, Eye, Activity, Radar, MapPin, Clock, Orbit, Signal, Layers } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts"
 
@@ -64,40 +64,91 @@ export default function RealTimeTracking() {
   const [activeView, setActiveView] = useState<"live-map" | "data-feeds" | "analytics" | "monitoring">("live-map")
   const mapRef = useRef<HTMLDivElement>(null)
   const [mapInstance, setMapInstance] = useState<any>(null)
+  const [satelliteGeoJSON, setSatelliteGeoJSON] = useState<any>(null)
+  const [earthquakesGeoJSON, setEarthquakesGeoJSON] = useState<any>(null)
+  const [eonetEventsGeoJSON, setEonetEventsGeoJSON] = useState<any>(null)
+  const [issPosition, setIssPosition] = useState<{ latitude: number; longitude: number } | null>(null)
+  const [showSatLabels, setShowSatLabels] = useState(true)
+  const [showEarthquakes, setShowEarthquakes] = useState(true)
+  const [showEonet, setShowEonet] = useState(true)
 
   const fetchComprehensiveSpaceData = async () => {
     setIsLoading(true)
     try {
-      console.log("[v0] Fetching comprehensive space data from multiple agencies...")
+      // Use internal API routes (no client tokens)
+      const [apodRes, issRes, spaceWxRes, eonetRes, quakesRes, satsRes] = await Promise.all([
+        fetch("/api/nasa/public-data?endpoint=nasa-apod"),
+        fetch("/api/nasa/public-data?endpoint=iss-position"),
+        fetch("/api/nasa/public-data?endpoint=noaa-space-weather"),
+        fetch("/api/nasa/public-data?endpoint=eonet-events&params=" + encodeURIComponent("limit=20")),
+        fetch("/api/nasa/public-data?endpoint=usgs-earthquakes&params=" + encodeURIComponent("format=geojson&limit=500")),
+        fetch("/api/nasa/satellites?ids=25544,20580,44713,43013,25994,27424,39084,40697,41866,26360"),
+      ])
 
-      // Fetch NASA API data
-      const nasaResponse = await fetch(
-        `https://api.nasa.gov/planetary/apod?api_key=${process.env.NEXT_PUBLIC_NASA_API_KEY || "DEMO_KEY"}`,
-      )
-      const nasaData = await nasaResponse.json()
+      const apodData = apodRes.ok ? await apodRes.json() : null
+      const issData = issRes.ok ? await issRes.json() : null
+      const spaceWeatherData = spaceWxRes.ok ? await spaceWxRes.json() : []
+      const eonetData = eonetRes.ok ? await eonetRes.json() : { events: [] }
+      const quakesData = quakesRes.ok ? await quakesRes.json() : null
+      const satsJson = satsRes.ok ? await satsRes.json() : { data: { satellites: [] } }
 
-      // Fetch ISS real-time position
-      const issResponse = await fetch("http://api.open-notify.org/iss-now.json")
-      const issData = await issResponse.json()
-
-      // Fetch NOAA space weather data
-      const spaceWeatherResponse = await fetch("https://services.swpc.noaa.gov/json/planetary_k_index_1m.json")
-      const spaceWeatherData = await spaceWeatherResponse.json()
-
-      // Fetch NASA EONET events
-      const eonetResponse = await fetch("https://eonet.gsfc.nasa.gov/api/v3/events?limit=10&status=open")
-      const eonetData = await eonetResponse.json()
-
-      // Fetch comprehensive satellite data using NASA Earth Data token
-      const earthDataResponse = await fetch("/api/nasa/earth-data", {
-        headers: {
-          Authorization: `Bearer ${process.env.NEXT_PUBLIC_NASA_EARTH_DATA_TOKEN}`,
+      const apiSats = satsJson?.data?.satellites || []
+      const enhancedSatellites = apiSats.map((sat: any, idx: number) => ({
+        satelliteId: sat.satelliteId || `api-${idx}`,
+        name: sat.name || `Satellite ${idx + 1}`,
+        noradId: sat.satelliteId?.toString() || "",
+        position: {
+          latitude: sat.position?.latitude ?? 0,
+          longitude: sat.position?.longitude ?? 0,
+          altitude: sat.altitude ?? 500,
+          velocity: sat.position?.velocity ?? 7.5,
+          timestamp: sat.position?.timestamp || new Date().toISOString(),
         },
-      })
-      const earthData = await earthDataResponse.json()
+        altitude: sat.altitude ?? 500,
+        period: sat.period ?? 90,
+        inclination: sat.inclination ?? 50,
+        apogee: sat.apogee ?? Math.round((sat.altitude ?? 500) + 20),
+        perigee: sat.perigee ?? Math.round((sat.altitude ?? 500) - 20),
+        launchDate: sat.epoch || "",
+        classification: (sat.altitude ?? 500) > 1000 ? "Commercial" : "Scientific",
+        status: "Active",
+      })) as any[]
 
-      // Generate enhanced satellite data with real orbital parameters
-      const enhancedSatellites = generateComprehensiveSatelliteData()
+      // Build GeoJSONs
+      setSatelliteGeoJSON({
+        type: "FeatureCollection",
+        features: enhancedSatellites.map((s: any) => ({
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [s.position.longitude, s.position.latitude] },
+          properties: {
+            id: s.satelliteId,
+            name: s.name,
+            altitude: s.altitude,
+            velocity: s.position.velocity,
+          },
+        })),
+      })
+
+      if (quakesData) setEarthquakesGeoJSON(quakesData)
+      if (eonetData?.events) {
+        const features = eonetData.events
+          .map((ev: any) => {
+            const geos = ev.geometry || []
+            const last = geos[geos.length - 1]
+            const coords = last?.coordinates
+            if (!coords || coords.length < 2) return null
+            return {
+              type: "Feature",
+              geometry: { type: "Point", coordinates: [coords[0], coords[1]] },
+              properties: { title: ev.title, category: ev.categories?.[0]?.title || "Event" },
+            }
+          })
+          .filter(Boolean)
+        setEonetEventsGeoJSON({ type: "FeatureCollection", features })
+      }
+      if (issData?.iss_position) {
+        setIssPosition({ latitude: Number.parseFloat(issData.iss_position.latitude), longitude: Number.parseFloat(issData.iss_position.longitude) })
+      }
 
       setComprehensiveData({
         satellites: enhancedSatellites,
@@ -108,8 +159,8 @@ export default function RealTimeTracking() {
           solarWindSpeed: 450 + Math.random() * 200,
           protonFlux: Math.random() * 10,
         },
-        earthEvents: eonetData?.events || [],
-        astronomyData: nasaData,
+        earthEvents: (eonetData?.events as any[]) || [],
+        astronomyData: apodData,
         totalObjects: 64247,
         activeObjects: enhancedSatellites.length,
         debrisObjects: 34891,
@@ -222,22 +273,29 @@ export default function RealTimeTracking() {
   const initializeEnhancedMap = () => {
     if (!mapRef.current || mapInstance) return
 
-    // Load Mapbox GL JS
-    const link = document.createElement("link")
-    link.href = "https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css"
-    link.rel = "stylesheet"
-    document.head.appendChild(link)
+    // Load Mapbox GL JS v3 dynamically
+    if (!document.querySelector('link[href*="mapbox-gl"]')) {
+      const link = document.createElement("link")
+      link.href = "https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css"
+      link.rel = "stylesheet"
+      document.head.appendChild(link)
+    }
+    const loadMap = async () => {
+      if (!(window as any).mapboxgl) {
+        await new Promise<void>((resolve) => {
+          const script = document.createElement("script")
+          script.src = "https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.js"
+          script.onload = () => resolve()
+          document.head.appendChild(script)
+        })
+      }
 
-    const script = document.createElement("script")
-    script.src = "https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"
-    script.onload = () => {
       const mapboxgl = (window as any).mapboxgl
       if (!mapboxgl) return
-
       mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
 
       const map = new mapboxgl.Map({
-        container: mapRef.current,
+        container: mapRef.current!,
         style: "mapbox://styles/mapbox/satellite-streets-v12",
         center: [0, 20],
         zoom: 2,
@@ -245,89 +303,31 @@ export default function RealTimeTracking() {
       })
 
       map.on("load", () => {
-        // Add atmosphere for 3D globe
-        map.setFog({
-          color: "rgb(186, 210, 235)",
-          "high-color": "rgb(36, 92, 223)",
-          "horizon-blend": 0.02,
-          "space-color": "rgb(11, 11, 25)",
-          "star-intensity": 0.6,
-        })
+        map.setFog({})
 
-        // Add satellite markers
-        comprehensiveData.satellites.forEach((satellite, index) => {
-          const el = document.createElement("div")
-          el.className = "satellite-marker"
-          el.style.cssText = `
-            width: 12px;
-            height: 12px;
-            background: #4e6aff;
-            border: 2px solid white;
-            border-radius: 50%;
-            box-shadow: 0 0 10px rgba(78, 106, 255, 0.6);
-            cursor: pointer;
-            animation: pulse 2s infinite;
-          `
+        // Satellites source + layers
+        map.addSource("satellites-source", { type: "geojson", data: satelliteGeoJSON || { type: "FeatureCollection", features: [] } } as any)
+        map.addLayer({ id: "satellites-points", type: "circle", source: "satellites-source", paint: { "circle-radius": 4, "circle-color": "#4e6aff", "circle-stroke-width": 2, "circle-stroke-color": "#fff" } })
+        map.addLayer({ id: "satellites-labels", type: "symbol", source: "satellites-source", layout: { "text-field": showSatLabels ? ["get", "name"] : "", "text-size": 10, "text-offset": [0, 1.0] }, paint: { "text-color": "#fff", "text-halo-color": "#000", "text-halo-width": 1 } })
 
-          const marker = new mapboxgl.Marker(el)
-            .setLngLat([satellite.position.longitude, satellite.position.latitude])
-            .setPopup(
-              new mapboxgl.Popup({ offset: 25 }).setHTML(`
-              <div class="p-3 min-w-[200px]">
-                <h3 class="font-bold text-lg mb-2">${satellite.name}</h3>
-                <div class="space-y-1 text-sm">
-                  <div><strong>NORAD ID:</strong> ${satellite.noradId}</div>
-                  <div><strong>Altitude:</strong> ${satellite.altitude.toFixed(0)} km</div>
-                  <div><strong>Velocity:</strong> ${satellite.position.velocity.toFixed(2)} km/s</div>
-                  <div><strong>Period:</strong> ${satellite.period.toFixed(1)} min</div>
-                  <div><strong>Inclination:</strong> ${satellite.inclination.toFixed(1)}°</div>
-                  <div><strong>Status:</strong> <span class="text-green-600">${satellite.status}</span></div>
-                </div>
-              </div>
-            `),
-            )
-            .addTo(map)
-        })
+        // Earthquakes clustered
+        map.addSource("earthquakes-source", { type: "geojson", data: earthquakesGeoJSON || { type: "FeatureCollection", features: [] }, cluster: true, clusterMaxZoom: 8, clusterRadius: 40 } as any)
+        map.addLayer({ id: "earthquakes-clusters", type: "circle", source: "earthquakes-source", filter: ["has", "point_count"], paint: { "circle-color": ["step", ["get", "point_count"], "#51bbd6", 50, "#f1f075", 200, "#f28cb1"], "circle-radius": ["step", ["get", "point_count"], 12, 50, 16, 200, 20] } })
+        map.addLayer({ id: "earthquakes-count", type: "symbol", source: "earthquakes-source", filter: ["has", "point_count"], layout: { "text-field": ["get", "point_count_abbreviated"], "text-size": 10 }, paint: { "text-color": "#111" } })
+        map.addLayer({ id: "earthquakes-points", type: "circle", source: "earthquakes-source", filter: ["!has", "point_count"], paint: { "circle-color": "#ff5722", "circle-radius": 5, "circle-stroke-width": 1, "circle-stroke-color": "#fff" } })
 
-        // Add ISS special marker
-        if (comprehensiveData.issPosition?.iss_position) {
-          const issEl = document.createElement("div")
-          issEl.style.cssText = `
-            width: 16px;
-            height: 16px;
-            background: #ff6b35;
-            border: 3px solid white;
-            border-radius: 50%;
-            box-shadow: 0 0 15px rgba(255, 107, 53, 0.8);
-            cursor: pointer;
-            animation: pulse 1s infinite;
-          `
+        // EONET events
+        map.addSource("eonet-source", { type: "geojson", data: eonetEventsGeoJSON || { type: "FeatureCollection", features: [] } } as any)
+        map.addLayer({ id: "eonet-layer", type: "symbol", source: "eonet-source", layout: { "icon-image": "marker-15", "icon-size": 1, "text-field": ["get", "title"], "text-size": 10, "text-offset": [0, 1.0] }, paint: { "text-color": "#fff", "text-halo-color": "#000", "text-halo-width": 1 } })
 
-          new mapboxgl.Marker(issEl)
-            .setLngLat([
-              Number.parseFloat(comprehensiveData.issPosition.iss_position.longitude),
-              Number.parseFloat(comprehensiveData.issPosition.iss_position.latitude),
-            ])
-            .setPopup(
-              new mapboxgl.Popup({ offset: 25 }).setHTML(`
-              <div class="p-3">
-                <h3 class="font-bold text-lg mb-2">🛰️ International Space Station</h3>
-                <div class="text-sm">
-                  <div><strong>Live Position</strong></div>
-                  <div>Altitude: ~408 km</div>
-                  <div>Speed: ~27,600 km/h</div>
-                  <div>Updated: ${new Date(comprehensiveData.issPosition.timestamp * 1000).toLocaleTimeString()}</div>
-                </div>
-              </div>
-            `),
-            )
-            .addTo(map)
-        }
+        // ISS marker
+        map.addSource("iss-source", { type: "geojson", data: { type: "FeatureCollection", features: [] } } as any)
+        map.addLayer({ id: "iss-layer", type: "symbol", source: "iss-source", layout: { "icon-image": "rocket-15", "icon-size": 1.2, "text-field": "ISS", "text-offset": [0, 1.0], "text-size": 10 }, paint: { "text-color": "#fff" } })
+
+        setMapInstance(map)
       })
-
-      setMapInstance(map)
     }
-    document.head.appendChild(script)
+    loadMap()
   }
 
   useEffect(() => {
@@ -343,10 +343,46 @@ export default function RealTimeTracking() {
   }, [selectedSatellite, comprehensiveData.satellites])
 
   useEffect(() => {
-    if (activeView === "live-map" && comprehensiveData.satellites.length > 0) {
-      setTimeout(initializeEnhancedMap, 100)
+    if (activeView === "live-map") setTimeout(initializeEnhancedMap, 100)
+  }, [activeView])
+
+  // Push data updates to map sources dynamically
+  useEffect(() => {
+    if (!mapInstance) return
+    const src = mapInstance.getSource("satellites-source")
+    if (src && satelliteGeoJSON) (src as any).setData(satelliteGeoJSON)
+    if (mapInstance.getLayer("satellites-labels")) {
+      mapInstance.setLayoutProperty("satellites-labels", "text-field", showSatLabels ? ["get", "name"] : "")
     }
-  }, [activeView, comprehensiveData])
+  }, [mapInstance, satelliteGeoJSON, showSatLabels])
+
+  useEffect(() => {
+    if (!mapInstance || !earthquakesGeoJSON) return
+    const src = mapInstance.getSource("earthquakes-source")
+    if (src) (src as any).setData(earthquakesGeoJSON)
+    ;["earthquakes-clusters", "earthquakes-count", "earthquakes-points"].forEach((id) => {
+      if (mapInstance.getLayer(id)) {
+        mapInstance.setLayoutProperty(id, "visibility", showEarthquakes ? "visible" : "none")
+      }
+    })
+  }, [mapInstance, earthquakesGeoJSON, showEarthquakes])
+
+  useEffect(() => {
+    if (!mapInstance || !eonetEventsGeoJSON) return
+    const src = mapInstance.getSource("eonet-source")
+    if (src) (src as any).setData(eonetEventsGeoJSON)
+    if (mapInstance.getLayer("eonet-layer")) {
+      mapInstance.setLayoutProperty("eonet-layer", "visibility", showEonet ? "visible" : "none")
+    }
+  }, [mapInstance, eonetEventsGeoJSON, showEonet])
+
+  useEffect(() => {
+    if (!mapInstance) return
+    const src = mapInstance.getSource("iss-source")
+    if (src && issPosition) {
+      ;(src as any).setData({ type: "FeatureCollection", features: [{ type: "Feature", geometry: { type: "Point", coordinates: [issPosition.longitude, issPosition.latitude] } }] })
+    }
+  }, [mapInstance, issPosition])
 
   const getStatusColor = (altitude: number) => {
     if (altitude > 1000) return "bg-blue-100 text-blue-800"
@@ -509,7 +545,26 @@ export default function RealTimeTracking() {
         <CardContent>
           {activeView === "live-map" && (
             <div className="space-y-4">
-              <div ref={mapRef} className="w-full h-[500px] rounded-lg border bg-gray-100"></div>
+              <div ref={mapRef} className="w-full h-[540px] rounded-lg border bg-gray-100 relative">
+                {/* Controls Overlay */}
+                <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm rounded-md shadow p-2 flex items-center gap-3">
+                  <label className="flex items-center gap-1 text-xs text-gray-700">
+                    <input type="checkbox" checked={showSatLabels} onChange={(e) => setShowSatLabels(e.target.checked)} /> Labels
+                  </label>
+                  <label className="flex items-center gap-1 text-xs text-gray-700">
+                    <input type="checkbox" checked={showEarthquakes} onChange={(e) => setShowEarthquakes(e.target.checked)} /> Earthquakes
+                  </label>
+                  <label className="flex items-center gap-1 text-xs text-gray-700">
+                    <input type="checkbox" checked={showEonet} onChange={(e) => setShowEonet(e.target.checked)} /> EONET
+                  </label>
+                </div>
+                {/* Legend Overlay */}
+                <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-md shadow p-2 text-xs text-gray-700">
+                  <div className="flex items-center gap-2 mb-1"><span className="inline-block w-2 h-2 rounded-full bg-[#4e6aff]"></span> Satellites</div>
+                  <div className="flex items-center gap-2 mb-1"><span className="inline-block w-2 h-2 rounded-full bg-[#ff5722]"></span> Earthquakes</div>
+                  <div className="flex items-center gap-2"><Layers className="w-3 h-3" /> EONET Events</div>
+                </div>
+              </div>
               <div className="grid md:grid-cols-3 gap-4 text-sm">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 bg-[#4e6aff] rounded-full"></div>

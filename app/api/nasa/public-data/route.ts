@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
         apiUrl = `https://services.swpc.noaa.gov/json/${params || "planetary_k_index_1m.json"}`
         break
       case "nasa-apod":
-        const nasaApiKey = process.env.NASA_API_KEY || "DEMO_KEY"
+        const nasaApiKey = process.env.NEXT_PUBLIC_NASA_API_KEY || process.env.NASA_API_KEY || "DEMO_KEY"
         apiUrl = `https://api.nasa.gov/planetary/apod?api_key=${nasaApiKey}${params ? `&${params}` : ""}`
         break
       default:
