@@ -386,6 +386,9 @@ function MapPageClient() {
   const mapRef = useRef<any>(null)
   const mapContainerRef = useRef<HTMLDivElement | null>(null)
   const [allSatGeoJSON, setAllSatGeoJSON] = useState<any>(null)
+  const popupRef = useRef<any>(null)
+  const handlersBoundRef = useRef<boolean>(false)
+  const [selectedNoradId, setSelectedNoradId] = useState<string | null>(null)
   const [earthquakesGeoJSON, setEarthquakesGeoJSON] = useState<any>(null)
   const [eonetEventsGeoJSON, setEonetEventsGeoJSON] = useState<any>(null)
   const [issPosition, setIssPosition] = useState<{ latitude: number; longitude: number } | null>(null)
@@ -615,9 +618,15 @@ function MapPageClient() {
 
     map.on("load", () => {
       map.setFog({})
-        if (is3D) map.setPitch(40)
-        if (autoRotate) map.rotateTo((map.getBearing() + 180) % 360, { duration: 20000 })
-      })
+      if (is3D) map.setPitch(40)
+      if (autoRotate) map.rotateTo((map.getBearing() + 180) % 360, { duration: 20000 })
+
+      // Orbit path source/layer for selected satellite
+      if (!map.getSource("selected-orbit")) {
+        map.addSource("selected-orbit", { type: "geojson", data: { type: "FeatureCollection", features: [] } } as any)
+        map.addLayer({ id: "selected-orbit-line", type: "line", source: "selected-orbit", paint: { "line-color": "#22d3ee", "line-width": 2, "line-opacity": 0.8 } })
+      }
+    })
       map.on("style.load", () => map.setFog({}))
 
     mapRef.current = map
@@ -838,6 +847,51 @@ function MapPageClient() {
         map.addLayer({ id: clusterLayer, type: "circle", source: sourceId, filter: ["has", "point_count"], paint: { "circle-color": ["step", ["get", "point_count"], "#4e6aff", 100, "#7c3aed", 500, "#ea580c"], "circle-radius": ["step", ["get", "point_count"], 8, 100, 12, 500, 16], "circle-opacity": 0.7 } })
         map.addLayer({ id: countLayer, type: "symbol", source: sourceId, filter: ["has", "point_count"], layout: { "text-field": ["get", "point_count_abbreviated"], "text-size": 10 }, paint: { "text-color": "#fff" } })
         map.addLayer({ id: pointsLayer, type: "circle", source: sourceId, filter: ["!has", "point_count"], paint: { "circle-color": "#1d4ed8", "circle-radius": 3, "circle-stroke-width": 1, "circle-stroke-color": "#fff" } })
+
+        // Interactions like flight radar
+        if (!handlersBoundRef.current) {
+          map.on("mouseenter", pointsLayer, () => (map.getCanvas().style.cursor = "pointer"))
+          map.on("mouseleave", pointsLayer, () => (map.getCanvas().style.cursor = ""))
+
+          // Zoom into clusters
+          map.on("click", clusterLayer, (e: any) => {
+            const features = map.queryRenderedFeatures(e.point, { layers: [clusterLayer] })
+            const clusterId = features?.[0]?.properties?.cluster_id
+            const src: any = map.getSource(sourceId)
+            src.getClusterExpansionZoom(clusterId, (err: any, zoom: number) => {
+              if (err) return
+              map.easeTo({ center: features[0].geometry.coordinates, zoom })
+            })
+          })
+
+          // Satellite point click -> popup + orbit
+          map.on("click", pointsLayer, async (e: any) => {
+            const feat = e.features?.[0]
+            if (!feat) return
+            const [lng, lat] = feat.geometry.coordinates
+            const name = feat.properties?.name || "Satellite"
+            const noradId = feat.properties?.noradId || feat.properties?.id
+            setSelectedNoradId(noradId)
+
+            const html = `<div class="text-xs"><div class="font-semibold mb-1">${name}</div><div>NORAD: ${noradId || "N/A"}</div><div>Lat/Lng: ${lat.toFixed(2)}, ${lng.toFixed(2)}</div></div>`
+            if (!popupRef.current) popupRef.current = new (window as any).mapboxgl.Popup({ offset: 10 })
+            popupRef.current.setLngLat([lng, lat]).setHTML(html).addTo(map)
+
+            try {
+              if (showGroundTracks && noradId) {
+                const res = await fetch(`/api/nasa/orbit-prediction?satelliteId=${encodeURIComponent(noradId)}&hours=6`)
+                const json = await res.json()
+                const positions = json?.data?.positions || []
+                const coords = positions.map((p: any) => [p.longitude, p.latitude])
+                const line = { type: "FeatureCollection", features: [{ type: "Feature", geometry: { type: "LineString", coordinates: coords } }] }
+                const srcOrbit: any = map.getSource("selected-orbit")
+                if (srcOrbit) srcOrbit.setData(line)
+              }
+            } catch {}
+          })
+
+          handlersBoundRef.current = true
+        }
       } else {
         ;(map.getSource(sourceId) as any).setData(allSatGeoJSON)
       }
