@@ -100,7 +100,7 @@ interface TourismRoute {
   startLng: number
   endLat: number
   endLng: number
-  duration: number 
+  duration: number
   price: number
   difficulty: "beginner" | "intermediate" | "advanced"
   provider: string
@@ -644,7 +644,7 @@ function MapPageClient() {
       const geojson = {
         type: "FeatureCollection",
         features: satellites.map((s) => ({
-          type: "Feature",
+            type: "Feature",
           geometry: { type: "Point", coordinates: [s.longitude, s.latitude] },
           properties: { title: s.name },
         })),
@@ -712,7 +712,7 @@ function MapPageClient() {
         type: "circle",
         source: sourceId,
         filter: ["has", "point_count"],
-        paint: {
+          paint: {
           "circle-color": [
             "step",
             ["get", "point_count"],

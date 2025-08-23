@@ -476,6 +476,9 @@ export default async function HomePage() {
                 </div>
               </div>
             </div>
+            <div className="mt-4 text-center text-gray-400 text-sm">
+              Design and Developed by Md Golam Mubasshir Rafi
+            </div>
           </div>
         </div>
       </footer>

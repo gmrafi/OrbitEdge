@@ -275,10 +275,10 @@ export default function RealTimeTracking() {
 
     // Load Mapbox GL JS v3 dynamically
     if (!document.querySelector('link[href*="mapbox-gl"]')) {
-      const link = document.createElement("link")
+    const link = document.createElement("link")
       link.href = "https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css"
-      link.rel = "stylesheet"
-      document.head.appendChild(link)
+    link.rel = "stylesheet"
+    document.head.appendChild(link)
     }
     const loadMap = async () => {
       if (!(window as any).mapboxgl) {
@@ -324,7 +324,7 @@ export default function RealTimeTracking() {
         map.addSource("iss-source", { type: "geojson", data: { type: "FeatureCollection", features: [] } } as any)
         map.addLayer({ id: "iss-layer", type: "symbol", source: "iss-source", layout: { "icon-image": "rocket-15", "icon-size": 1.2, "text-field": "ISS", "text-offset": [0, 1.0], "text-size": 10 }, paint: { "text-color": "#fff" } })
 
-        setMapInstance(map)
+      setMapInstance(map)
       })
     }
     loadMap()
