@@ -2,7 +2,7 @@
 
 [![NASA Space Apps Challenge 2025](https://img.shields.io/badge/NASA%20Space%20Apps-Challenge%202025-blue?style=for-the-badge&logo=nasa)](https://www.spaceappschallenge.org/)
 [![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/spacwwebs-projects/v0-orbit-edge-global-project)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.app-black?style=for-the-badge)](https://v0.app/chat/projects/NywsZcCrXYV)
+
 
 ## 🚀 Project Overview
 

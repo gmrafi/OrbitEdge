@@ -8,12 +8,29 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Send, Bot, User, Satellite, Rocket, Globe, Zap, Sparkles, MessageSquare, TrendingUp, Shield, Clock } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { 
+  Send, Bot, User, Satellite, Rocket, Globe, Zap, Sparkles, MessageSquare, 
+  TrendingUp, Shield, Clock, Download, Trash2, Copy, ThumbsUp, ThumbsDown, 
+  RefreshCw, Mic, Image, FileText, Settings, Moon, Sun, BarChart3, 
+  BookOpen, Code, Share2, Star, Bookmark, History, PieChart
+} from "lucide-react"
 
 interface Message {
   id: string
   content: string
   sender: "user" | "ai"
+  timestamp: Date
+  liked?: boolean
+  disliked?: boolean
+  bookmarked?: boolean
+  category?: string
+}
+
+interface Conversation {
+  id: string
+  title: string
+  messages: Message[]
   timestamp: Date
 }
 
@@ -26,6 +43,15 @@ const SAMPLE_QUESTIONS = [
   "How do I calculate satellite launch costs?",
 ]
 
+const AI_FEATURES = [
+  { name: "Real-time Tracking", icon: Satellite, description: "64,000+ satellites monitored" },
+  { name: "Risk Analysis", icon: Shield, description: "ISO 24113 compliance" },
+  { name: "Market Insights", icon: TrendingUp, description: "$447B space economy" },
+  { name: "Financial Models", icon: PieChart, description: "ROI & cost analysis" },
+  { name: "Orbital Mechanics", icon: Rocket, description: "SGP4 calculations" },
+  { name: "Data Visualization", icon: BarChart3, description: "Interactive charts" },
+]
+
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -34,17 +60,137 @@ export default function ChatPage() {
         "Hello! I'm OrbitEdge AI, your space commerce assistant. I can help you with satellite tracking, LEO business opportunities, space debris analysis, and orbital mechanics. What would you like to know about the space economy?",
       sender: "ai",
       timestamp: new Date(),
+      category: "greeting"
     },
   ])
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null)
   const [inputMessage, setInputMessage] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [darkMode, setDarkMode] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const [messageCount, setMessageCount] = useState(0)
+  const [totalConversations, setTotalConversations] = useState(0)
 
   useEffect(() => {
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight
     }
   }, [messages])
+
+  useEffect(() => {
+    setMessageCount(messages.length)
+    setTotalConversations(conversations.length)
+  }, [messages, conversations])
+
+  const toggleLike = (messageId: string) => {
+    setMessages((prev) =>
+      prev.map((msg) =>
+        msg.id === messageId
+          ? { ...msg, liked: !msg.liked, disliked: false }
+          : msg
+      )
+    )
+  }
+
+  const toggleDislike = (messageId: string) => {
+    setMessages((prev) =>
+      prev.map((msg) =>
+        msg.id === messageId
+          ? { ...msg, disliked: !msg.disliked, liked: false }
+          : msg
+      )
+    )
+  }
+
+  const toggleBookmark = (messageId: string) => {
+    setMessages((prev) =>
+      prev.map((msg) =>
+        msg.id === messageId
+          ? { ...msg, bookmarked: !msg.bookmarked }
+          : msg
+      )
+    )
+  }
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text)
+    // Optional: Add toast notification
+  }
+
+  const exportConversation = () => {
+    const conversationText = messages
+      .map((msg) => `[${msg.timestamp.toLocaleString()}] ${msg.sender === "user" ? "You" : "OrbitEdge AI"}: ${msg.content}`)
+      .join("\n\n")
+    
+    const blob = new Blob([conversationText], { type: "text/plain" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `orbitedge-chat-${new Date().toISOString()}.txt`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const clearConversation = () => {
+    if (confirm("Are you sure you want to clear this conversation?")) {
+      setMessages([
+        {
+          id: Date.now().toString(),
+          content: "Conversation cleared. How can I assist you today?",
+          sender: "ai",
+          timestamp: new Date(),
+          category: "system"
+        },
+      ])
+    }
+  }
+
+  const saveConversation = () => {
+    const newConversation: Conversation = {
+      id: Date.now().toString(),
+      title: `Conversation ${conversations.length + 1}`,
+      messages: [...messages],
+      timestamp: new Date(),
+    }
+    setConversations((prev) => [newConversation, ...prev])
+  }
+
+  const loadConversation = (conversationId: string) => {
+    const conversation = conversations.find((c) => c.id === conversationId)
+    if (conversation) {
+      setMessages(conversation.messages)
+      setCurrentConversationId(conversationId)
+      setShowHistory(false)
+    }
+  }
+
+  const startNewConversation = () => {
+    saveConversation()
+    setMessages([
+      {
+        id: Date.now().toString(),
+        content: "New conversation started! What would you like to discuss?",
+        sender: "ai",
+        timestamp: new Date(),
+        category: "greeting"
+      },
+    ])
+    setCurrentConversationId(null)
+  }
+
+  const toggleVoiceInput = () => {
+    setIsRecording(!isRecording)
+    // Placeholder for voice input functionality
+    if (!isRecording) {
+      setTimeout(() => {
+        setIsRecording(false)
+        setInputMessage("Voice input: Tell me about satellite constellations")
+      }, 3000)
+    }
+  }
 
   const generateAIResponse = async (userMessage: string): Promise<string> => {
     // Simulate AI response with space-focused content
@@ -148,14 +294,36 @@ export default function ChatPage() {
                   <p className="text-gray-600 font-medium">Your Intelligent Space Commerce Assistant</p>
                 </div>
               </div>
-              <div className="hidden md:flex items-center gap-6">
+              <div className="hidden md:flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowHistory(!showHistory)}
+                  className="rounded-xl hover:bg-blue-50"
+                >
+                  <History className="h-4 w-4 mr-2" />
+                  History
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={startNewConversation}
+                  className="rounded-xl hover:bg-green-50"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  New Chat
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setDarkMode(!darkMode)}
+                  className="rounded-xl hover:bg-purple-50"
+                >
+                  {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                </Button>
                 <div className="flex items-center gap-2 px-4 py-2 bg-green-50 rounded-full border border-green-200">
                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-sm font-medium text-green-700">Online & Ready</span>
-                </div>
-                <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-full border border-blue-200">
-                  <Satellite className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm font-medium text-blue-700">Space Expert</span>
+                  <span className="text-sm font-medium text-green-700">Online</span>
                 </div>
               </div>
             </div>
@@ -192,20 +360,74 @@ export default function ChatPage() {
                             </AvatarFallback>
                           </Avatar>
                         )}
-                        <div
-                          className={`max-w-[75%] rounded-2xl p-4 shadow-lg transition-all hover:shadow-xl ${
-                            message.sender === "user"
-                              ? "bg-gradient-to-br from-blue-600 to-purple-600 text-white"
-                              : "bg-white border border-gray-100"
-                          }`}
-                        >
-                          <p className={`text-sm leading-relaxed ${message.sender === "ai" ? "text-gray-700" : ""}`}>
-                            {message.content}
-                          </p>
-                          <div className="flex items-center gap-2 mt-2">
-                            <Clock className="h-3 w-3 opacity-60" />
-                            <p className="text-xs opacity-70">{message.timestamp.toLocaleTimeString()}</p>
+                        <div className="flex flex-col gap-2 max-w-[75%]">
+                          <div
+                            className={`rounded-2xl p-4 shadow-lg transition-all hover:shadow-xl ${
+                              message.sender === "user"
+                                ? "bg-gradient-to-br from-blue-600 to-purple-600 text-white"
+                                : "bg-white border border-gray-100"
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <p className={`text-sm leading-relaxed flex-1 ${message.sender === "ai" ? "text-gray-700" : ""}`}>
+                                {message.content}
+                              </p>
+                              {message.category && (
+                                <Badge variant="secondary" className="text-xs shrink-0">
+                                  {message.category}
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 mt-2">
+                              <Clock className="h-3 w-3 opacity-60" />
+                              <p className="text-xs opacity-70">{message.timestamp.toLocaleTimeString()}</p>
+                            </div>
                           </div>
+                          
+                          {/* Message Actions */}
+                          {message.sender === "ai" && (
+                            <div className="flex items-center gap-2 px-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 hover:bg-blue-50"
+                                onClick={() => toggleLike(message.id)}
+                              >
+                                <ThumbsUp className={`h-3.5 w-3.5 ${message.liked ? "fill-blue-500 text-blue-500" : "text-gray-400"}`} />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 hover:bg-red-50"
+                                onClick={() => toggleDislike(message.id)}
+                              >
+                                <ThumbsDown className={`h-3.5 w-3.5 ${message.disliked ? "fill-red-500 text-red-500" : "text-gray-400"}`} />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 hover:bg-yellow-50"
+                                onClick={() => toggleBookmark(message.id)}
+                              >
+                                <Bookmark className={`h-3.5 w-3.5 ${message.bookmarked ? "fill-yellow-500 text-yellow-500" : "text-gray-400"}`} />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 hover:bg-green-50"
+                                onClick={() => copyToClipboard(message.content)}
+                              >
+                                <Copy className="h-3.5 w-3.5 text-gray-400" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0 hover:bg-purple-50"
+                              >
+                                <Share2 className="h-3.5 w-3.5 text-gray-400" />
+                              </Button>
+                            </div>
+                          )}
                         </div>
                         {message.sender === "user" && (
                           <Avatar className="h-10 w-10 ring-2 ring-purple-100">
@@ -241,7 +463,69 @@ export default function ChatPage() {
                   </div>
                 </ScrollArea>
                 <div className="border-t bg-gradient-to-r from-blue-50 to-purple-50 p-4">
-                  <div className="flex gap-3">
+                  {/* Toolbar */}
+                  <div className="flex items-center gap-2 mb-3 flex-wrap">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={exportConversation}
+                      className="h-8 text-xs rounded-lg hover:bg-blue-50"
+                    >
+                      <Download className="h-3.5 w-3.5 mr-1.5" />
+                      Export
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={clearConversation}
+                      className="h-8 text-xs rounded-lg hover:bg-red-50"
+                    >
+                      <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                      Clear
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={saveConversation}
+                      className="h-8 text-xs rounded-lg hover:bg-green-50"
+                    >
+                      <Bookmark className="h-3.5 w-3.5 mr-1.5" />
+                      Save
+                    </Button>
+                    <div className="flex-1"></div>
+                    <Badge variant="secondary" className="text-xs">
+                      {messages.length} messages
+                    </Badge>
+                  </div>
+
+                  {/* Input Area */}
+                  <div className="flex gap-2">
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={toggleVoiceInput}
+                        className={`h-12 w-12 p-0 rounded-xl ${isRecording ? "bg-red-50 border-red-300" : ""}`}
+                      >
+                        <Mic className={`h-5 w-5 ${isRecording ? "text-red-500 animate-pulse" : "text-gray-600"}`} />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-12 w-12 p-0 rounded-xl"
+                        title="Attach Image"
+                      >
+                        <Image className="h-5 w-5 text-gray-600" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-12 w-12 p-0 rounded-xl"
+                        title="Attach File"
+                      >
+                        <FileText className="h-5 w-5 text-gray-600" />
+                      </Button>
+                    </div>
                     <Input
                       value={inputMessage}
                       onChange={(e) => setInputMessage(e.target.value)}
@@ -265,6 +549,47 @@ export default function ChatPage() {
 
           {/* Sidebar */}
           <div className="space-y-6">
+            {/* Conversation History */}
+            {showHistory && (
+              <Card className="bg-white/80 backdrop-blur-xl border-white/20 shadow-xl overflow-hidden">
+                <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-purple-100">
+                  <CardTitle className="text-lg flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg">
+                        <History className="h-4 w-4 text-white" />
+                      </div>
+                      <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                        History
+                      </span>
+                    </div>
+                    <Badge variant="secondary">{conversations.length}</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 max-h-[300px] overflow-y-auto">
+                  {conversations.length === 0 ? (
+                    <p className="text-sm text-gray-500 text-center py-4">No saved conversations yet</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {conversations.map((conv) => (
+                        <Button
+                          key={conv.id}
+                          variant="outline"
+                          size="sm"
+                          className="w-full justify-between h-auto p-3 text-left hover:bg-purple-50"
+                          onClick={() => loadConversation(conv.id)}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{conv.title}</p>
+                            <p className="text-xs text-gray-500">{conv.timestamp.toLocaleDateString()}</p>
+                          </div>
+                          <MessageSquare className="h-4 w-4 text-purple-500 shrink-0" />
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
             {/* Quick Questions */}
             <Card className="bg-white/80 backdrop-blur-xl border-white/20 shadow-xl overflow-hidden">
               <CardHeader className="bg-gradient-to-r from-yellow-50 to-orange-50 border-b border-orange-100">
@@ -296,43 +621,44 @@ export default function ChatPage() {
             {/* AI Capabilities */}
             <Card className="bg-white/80 backdrop-blur-xl border-white/20 shadow-xl overflow-hidden">
               <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50 border-b border-blue-100">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <div className="p-1.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
-                    <Rocket className="h-4 w-4 text-white" />
+                <CardTitle className="text-lg flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+                      <Rocket className="h-4 w-4 text-white" />
+                    </div>
+                    <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                      AI Capabilities
+                    </span>
                   </div>
-                  <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                    AI Capabilities
-                  </span>
+                  <Badge variant="secondary" className="text-xs">6 Features</Badge>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4 p-4">
-                <div className="flex items-start gap-3 p-3 rounded-xl bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100">
-                  <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg">
-                    <Satellite className="h-4 w-4 text-white" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-sm text-gray-800">Satellite Operations</p>
-                    <p className="text-xs text-gray-600 mt-0.5">Real-time tracking, risk analysis & compliance monitoring</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 p-3 rounded-xl bg-gradient-to-r from-green-50 to-emerald-50 border border-green-100">
-                  <div className="p-2 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg">
-                    <TrendingUp className="h-4 w-4 text-white" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-sm text-gray-800">Market Analysis</p>
-                    <p className="text-xs text-gray-600 mt-0.5">LEO business opportunities & revenue projections</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 p-3 rounded-xl bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-100">
-                  <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg">
-                    <Shield className="h-4 w-4 text-white" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-sm text-gray-800">Technical Guidance</p>
-                    <p className="text-xs text-gray-600 mt-0.5">Launch planning, cost analysis & regulations</p>
-                  </div>
-                </div>
+              <CardContent className="space-y-3 p-4">
+                {AI_FEATURES.map((feature, index) => {
+                  const Icon = feature.icon
+                  const colors = [
+                    { bg: "from-blue-50 to-purple-50", border: "border-blue-100", icon: "from-blue-500 to-blue-600" },
+                    { bg: "from-green-50 to-emerald-50", border: "border-green-100", icon: "from-green-500 to-emerald-600" },
+                    { bg: "from-purple-50 to-pink-50", border: "border-purple-100", icon: "from-purple-500 to-pink-600" },
+                    { bg: "from-yellow-50 to-orange-50", border: "border-yellow-100", icon: "from-yellow-500 to-orange-600" },
+                    { bg: "from-red-50 to-rose-50", border: "border-red-100", icon: "from-red-500 to-rose-600" },
+                    { bg: "from-cyan-50 to-blue-50", border: "border-cyan-100", icon: "from-cyan-500 to-blue-600" },
+                  ]
+                  const color = colors[index % colors.length]
+                  
+                  return (
+                    <div key={index} className={`flex items-start gap-3 p-3 rounded-xl bg-gradient-to-r ${color.bg} border ${color.border} hover:shadow-md transition-shadow cursor-pointer`}>
+                      <div className={`p-2 bg-gradient-to-br ${color.icon} rounded-lg`}>
+                        <Icon className="h-4 w-4 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm text-gray-800">{feature.name}</p>
+                        <p className="text-xs text-gray-600 mt-0.5">{feature.description}</p>
+                      </div>
+                      <Star className="h-4 w-4 text-yellow-500 shrink-0" />
+                    </div>
+                  )
+                })}
               </CardContent>
             </Card>
 
@@ -344,28 +670,74 @@ export default function ChatPage() {
                   Live Statistics
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4 p-4">
-                <div className="flex justify-between items-center p-3 bg-white/10 backdrop-blur-xl rounded-xl">
-                  <span className="text-sm font-medium">Messages Today</span>
+              <CardContent className="space-y-3 p-4">
+                <div className="flex justify-between items-center p-3 bg-white/10 backdrop-blur-xl rounded-xl hover:bg-white/20 transition-colors">
                   <div className="flex items-center gap-2">
-                    <span className="text-2xl font-bold">{messages.length}</span>
                     <MessageSquare className="h-4 w-4" />
+                    <span className="text-sm font-medium">Messages</span>
                   </div>
+                  <span className="text-2xl font-bold">{messageCount}</span>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-white/10 backdrop-blur-xl rounded-xl">
-                  <span className="text-sm font-medium">Avg Response</span>
+                <div className="flex justify-between items-center p-3 bg-white/10 backdrop-blur-xl rounded-xl hover:bg-white/20 transition-colors">
                   <div className="flex items-center gap-2">
-                    <span className="text-2xl font-bold">~1s</span>
+                    <History className="h-4 w-4" />
+                    <span className="text-sm font-medium">Conversations</span>
+                  </div>
+                  <span className="text-2xl font-bold">{totalConversations}</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-white/10 backdrop-blur-xl rounded-xl hover:bg-white/20 transition-colors">
+                  <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4" />
+                    <span className="text-sm font-medium">Avg Response</span>
                   </div>
+                  <span className="text-2xl font-bold">~1s</span>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-white/10 backdrop-blur-xl rounded-xl">
-                  <span className="text-sm font-medium">Accuracy Rate</span>
+                <div className="flex justify-between items-center p-3 bg-white/10 backdrop-blur-xl rounded-xl hover:bg-white/20 transition-colors">
                   <div className="flex items-center gap-2">
-                    <span className="text-2xl font-bold">98.5%</span>
                     <Shield className="h-4 w-4" />
+                    <span className="text-sm font-medium">Accuracy</span>
                   </div>
+                  <span className="text-2xl font-bold">98.5%</span>
                 </div>
+                <div className="flex justify-between items-center p-3 bg-white/10 backdrop-blur-xl rounded-xl hover:bg-white/20 transition-colors">
+                  <div className="flex items-center gap-2">
+                    <Bookmark className="h-4 w-4" />
+                    <span className="text-sm font-medium">Bookmarked</span>
+                  </div>
+                  <span className="text-2xl font-bold">{messages.filter(m => m.bookmarked).length}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Knowledge Base */}
+            <Card className="bg-white/80 backdrop-blur-xl border-white/20 shadow-xl overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b border-green-100">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <div className="p-1.5 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg">
+                    <BookOpen className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                    Knowledge Base
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 p-4">
+                <Button variant="ghost" className="w-full justify-start text-sm h-auto py-2 hover:bg-green-50">
+                  <Code className="h-4 w-4 mr-2 text-green-600" />
+                  API Documentation
+                </Button>
+                <Button variant="ghost" className="w-full justify-start text-sm h-auto py-2 hover:bg-blue-50">
+                  <BarChart3 className="h-4 w-4 mr-2 text-blue-600" />
+                  Market Reports
+                </Button>
+                <Button variant="ghost" className="w-full justify-start text-sm h-auto py-2 hover:bg-purple-50">
+                  <Shield className="h-4 w-4 mr-2 text-purple-600" />
+                  Compliance Guides
+                </Button>
+                <Button variant="ghost" className="w-full justify-start text-sm h-auto py-2 hover:bg-orange-50">
+                  <Rocket className="h-4 w-4 mr-2 text-orange-600" />
+                  Launch Calculators
+                </Button>
               </CardContent>
             </Card>
           </div>
