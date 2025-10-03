@@ -356,27 +356,6 @@ We welcome contributions from the space technology community:
 4. Add tests if applicable
 5. Submit a pull request
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🏅 Awards & Recognition
-
-- **NASA Space Apps Challenge 2025** - Participant
-- **Sylhet Location** - Local competition entry
-- **Global Nomination** - Eligible for worldwide recognition
-
-## 📞 Connect With Us
-
-- **GitHub**: [github.com/aiba-space-web](https://github.com/aiba-space-web)
-- **NASA Space Apps**: [Sylhet Location](https://www.spaceappschallenge.org/2025/locations/sylhet/)
-- **Submission Form**: [Google Form](https://forms.gle/k2XS6c6nDrjmdwgX9)
-
-## 🚀 Deployment
-
-**Live Demo**: [https://vercel.com/spacwwebs-projects/v0-orbit-edge-global-project](https://vercel.com/spacwwebs-projects/v0-orbit-edge-global-project)
-
-**Continue Development**: [https://v0.app/chat/projects/NywsZcCrXYV](https://v0.app/chat/projects/NywsZcCrXYV)
 
 ---
 
