@@ -1,4 +1,6 @@
-// NASA API Integration Utilities
+// NASA API Integration with Celestrak + satellite.js SGP4
+import * as satellite from "satellite.js"
+
 export interface TLEData {
   satelliteId: string
   name: string
@@ -13,6 +15,8 @@ export interface TLEData {
   meanAnomaly: number
   altitude: number
   period: number
+  intlDes?: string
+  launchYear?: number
 }
 
 export interface SatellitePosition {
@@ -22,21 +26,38 @@ export interface SatellitePosition {
   altitude: number
   velocity: number
   timestamp: string
+  azimuth?: number
+  elevation?: number
+  range?: number
 }
 
 export interface OrbitPrediction {
   satelliteId: string
   positions: SatellitePosition[]
   nextPass: {
-    aos: string // Acquisition of Signal
-    los: string // Loss of Signal
+    aos: string
+    los: string
     maxElevation: number
   }
 }
 
-// NASA Satellite Services API
-const NASA_SATELLITE_API_BASE = "https://tle.ivanstanojevic.me/api/tle"
-const NASA_SSC_API_BASE = "https://sscweb.gsfc.nasa.gov/WS/sscr/2"
+// Celestrak REST API (JSON format, no auth required)
+const CELESTRAK_GP_BASE = "https://celestrak.org/NORAD/elements/gp.php"
+const CELESTRAK_GROUPS = {
+  stations: "stations",
+  active: "active",
+  starlink: "starlink",
+  oneweb: "oneweb",
+  gps: "gps-ops",
+  galileo: "galileo",
+  glonass: "glonass-ops",
+  weather: "weather",
+  noaa: "noaa",
+  earth: "resource",
+  science: "science",
+  debris: "debris",
+  iss: "stations",
+} as const
 
 export class NASAAPIClient {
   private static instance: NASAAPIClient
@@ -65,7 +86,7 @@ export class NASAAPIClient {
     return cached?.data
   }
 
-  // Fetch TLE data for specific satellites
+  // Fetch TLE data from Celestrak (supports NORAD catalog numbers or group names)
   async getTLEData(satelliteIds: string[]): Promise<TLEData[]> {
     const cacheKey = `tle-${satelliteIds.join(",")}`
 
@@ -74,40 +95,101 @@ export class NASAAPIClient {
     }
 
     try {
-      // Using a public TLE API as NASA's direct TLE API requires authentication
+      // Celestrak GP API: fetch each satellite individually (API doesn't support comma-separated list)
       const promises = satelliteIds.map(async (id) => {
-        const response = await fetch(`${NASA_SATELLITE_API_BASE}/${id}`)
-        if (!response.ok) throw new Error(`Failed to fetch TLE for ${id}`)
-        return response.json()
+        const url = `${CELESTRAK_GP_BASE}?CATNR=${id}&FORMAT=json`
+        const response = await fetch(url, {
+          headers: { Accept: "application/json" },
+        })
+
+        if (!response.ok) {
+          throw new Error(`Celestrak API error for ${id}: ${response.status}`)
+        }
+
+        const data = await response.json()
+        return data[0] // Celestrak returns array with single element
       })
 
       const results = await Promise.all(promises)
-      const tleData: TLEData[] = results.map((result, index) => ({
-        satelliteId: satelliteIds[index],
-        name: result.name || `Satellite ${satelliteIds[index]}`,
-        line1: result.line1 || "",
-        line2: result.line2 || "",
-        epoch: result.date || new Date().toISOString(),
-        meanMotion: this.parseTLE(result.line2, "meanMotion"),
-        eccentricity: this.parseTLE(result.line2, "eccentricity"),
-        inclination: this.parseTLE(result.line2, "inclination"),
-        raan: this.parseTLE(result.line2, "raan"),
-        argPerigee: this.parseTLE(result.line2, "argPerigee"),
-        meanAnomaly: this.parseTLE(result.line2, "meanAnomaly"),
-        altitude: this.calculateAltitude(this.parseTLE(result.line2, "meanMotion")),
-        period: this.calculatePeriod(this.parseTLE(result.line2, "meanMotion")),
-      }))
+
+      const tleData: TLEData[] = results.filter(Boolean).map((sat: any) => {
+        const satrec = satellite.twoline2satrec(sat.TLE_LINE1, sat.TLE_LINE2)
+        return {
+          satelliteId: sat.NORAD_CAT_ID || sat.OBJECT_ID,
+          name: sat.OBJECT_NAME,
+          line1: sat.TLE_LINE1,
+          line2: sat.TLE_LINE2,
+          epoch: sat.EPOCH,
+          meanMotion: satrec.no * (1440 / (2 * Math.PI)), // rad/min → rev/day
+          eccentricity: satrec.ecco,
+          inclination: (satrec.inclo * 180) / Math.PI,
+          raan: (satrec.nodeo * 180) / Math.PI,
+          argPerigee: (satrec.argpo * 180) / Math.PI,
+          meanAnomaly: (satrec.mo * 180) / Math.PI,
+          altitude: this.calculateAltitudeFromSatrec(satrec),
+          period: (2 * Math.PI) / satrec.no, // minutes
+          intlDes: sat.INTLDES,
+          launchYear: parseInt(sat.INTLDES?.substring(0, 2) || "0"),
+        }
+      })
 
       this.setCache(cacheKey, tleData)
       return tleData
     } catch (error) {
-      console.error("Error fetching TLE data:", error)
-      // Return mock data for demo purposes
+      console.error("[v0] Celestrak API error:", error)
       return this.getMockTLEData(satelliteIds)
     }
   }
 
-  // Calculate current satellite positions
+  // Fetch TLE data by Celestrak group (e.g., "stations", "starlink")
+  async getTLEByGroup(group: keyof typeof CELESTRAK_GROUPS, limit = 50): Promise<TLEData[]> {
+    const cacheKey = `group-${group}-${limit}`
+    if (this.isCacheValid(cacheKey)) {
+      return this.getCache(cacheKey)
+    }
+
+    try {
+      const groupName = CELESTRAK_GROUPS[group]
+      const url = `${CELESTRAK_GP_BASE}?GROUP=${groupName}&FORMAT=json`
+      const response = await fetch(url, { headers: { Accept: "application/json" } })
+
+      if (!response.ok) {
+        throw new Error(`Celestrak group API error: ${response.status}`)
+      }
+
+      const data = await response.json()
+      const limited = data.slice(0, limit)
+
+      const tleData: TLEData[] = limited.map((sat: any) => {
+        const satrec = satellite.twoline2satrec(sat.TLE_LINE1, sat.TLE_LINE2)
+        return {
+          satelliteId: sat.NORAD_CAT_ID || sat.OBJECT_ID,
+          name: sat.OBJECT_NAME,
+          line1: sat.TLE_LINE1,
+          line2: sat.TLE_LINE2,
+          epoch: sat.EPOCH,
+          meanMotion: satrec.no * (1440 / (2 * Math.PI)),
+          eccentricity: satrec.ecco,
+          inclination: (satrec.inclo * 180) / Math.PI,
+          raan: (satrec.nodeo * 180) / Math.PI,
+          argPerigee: (satrec.argpo * 180) / Math.PI,
+          meanAnomaly: (satrec.mo * 180) / Math.PI,
+          altitude: this.calculateAltitudeFromSatrec(satrec),
+          period: (2 * Math.PI) / satrec.no,
+          intlDes: sat.INTLDES,
+          launchYear: parseInt(sat.INTLDES?.substring(0, 2) || "0"),
+        }
+      })
+
+      this.setCache(cacheKey, tleData)
+      return tleData
+    } catch (error) {
+      console.error(`[v0] Celestrak group ${group} error:`, error)
+      return []
+    }
+  }
+
+  // Calculate current satellite positions using SGP4 propagation
   async getSatellitePositions(satelliteIds: string[]): Promise<SatellitePosition[]> {
     const cacheKey = `positions-${satelliteIds.join(",")}`
 
@@ -117,24 +199,51 @@ export class NASAAPIClient {
 
     try {
       const tleData = await this.getTLEData(satelliteIds)
-      const positions: SatellitePosition[] = tleData.map((tle) => ({
-        satelliteId: tle.satelliteId,
-        latitude: this.calculateLatitude(tle),
-        longitude: this.calculateLongitude(tle),
-        altitude: tle.altitude,
-        velocity: this.calculateVelocity(tle.altitude),
-        timestamp: new Date().toISOString(),
-      }))
+      const now = new Date()
+      
+      const positions: SatellitePosition[] = tleData.map((tle) => {
+        const satrec = satellite.twoline2satrec(tle.line1, tle.line2)
+        const positionAndVelocity = satellite.propagate(satrec, now)
+        
+        if (positionAndVelocity && positionAndVelocity.position && typeof positionAndVelocity.position !== "boolean") {
+          const gmst = satellite.gstime(now)
+          const positionGd = satellite.eciToGeodetic(positionAndVelocity.position, gmst)
+          
+          const velocity = positionAndVelocity.velocity
+          const speed = typeof velocity !== "boolean" && velocity
+            ? Math.sqrt(velocity.x ** 2 + velocity.y ** 2 + velocity.z ** 2)
+            : 0
+
+          return {
+            satelliteId: tle.satelliteId,
+            latitude: (positionGd.latitude * 180) / Math.PI,
+            longitude: (positionGd.longitude * 180) / Math.PI,
+            altitude: positionGd.height,
+            velocity: speed,
+            timestamp: now.toISOString(),
+          }
+        }
+        
+        // Fallback if propagation fails
+        return {
+          satelliteId: tle.satelliteId,
+          latitude: 0,
+          longitude: 0,
+          altitude: tle.altitude,
+          velocity: this.calculateVelocity(tle.altitude),
+          timestamp: now.toISOString(),
+        }
+      })
 
       this.setCache(cacheKey, positions)
       return positions
     } catch (error) {
-      console.error("Error calculating positions:", error)
+      console.error("[v0] SGP4 propagation error:", error)
       return this.getMockPositions(satelliteIds)
     }
   }
 
-  // Predict future orbital positions
+  // Predict future orbital positions using SGP4
   async getOrbitPredictions(satelliteId: string, hours = 24): Promise<OrbitPrediction> {
     const cacheKey = `prediction-${satelliteId}-${hours}`
 
@@ -146,28 +255,41 @@ export class NASAAPIClient {
       const tle = await this.getTLEData([satelliteId])
       if (tle.length === 0) throw new Error("No TLE data available")
 
+      const satrec = satellite.twoline2satrec(tle[0].line1, tle[0].line2)
       const positions: SatellitePosition[] = []
       const intervalMinutes = 10
       const totalIntervals = (hours * 60) / intervalMinutes
 
       for (let i = 0; i < totalIntervals; i++) {
         const futureTime = new Date(Date.now() + i * intervalMinutes * 60 * 1000)
-        positions.push({
-          satelliteId,
-          latitude: this.predictLatitude(tle[0], futureTime),
-          longitude: this.predictLongitude(tle[0], futureTime),
-          altitude: tle[0].altitude,
-          velocity: this.calculateVelocity(tle[0].altitude),
-          timestamp: futureTime.toISOString(),
-        })
+        const positionAndVelocity = satellite.propagate(satrec, futureTime)
+
+        if (positionAndVelocity && positionAndVelocity.position && typeof positionAndVelocity.position !== "boolean") {
+          const gmst = satellite.gstime(futureTime)
+          const positionGd = satellite.eciToGeodetic(positionAndVelocity.position, gmst)
+          
+          const velocity = positionAndVelocity.velocity
+          const speed = typeof velocity !== "boolean" && velocity
+            ? Math.sqrt(velocity.x ** 2 + velocity.y ** 2 + velocity.z ** 2)
+            : this.calculateVelocity(tle[0].altitude)
+
+          positions.push({
+            satelliteId,
+            latitude: (positionGd.latitude * 180) / Math.PI,
+            longitude: (positionGd.longitude * 180) / Math.PI,
+            altitude: positionGd.height,
+            velocity: speed,
+            timestamp: futureTime.toISOString(),
+          })
+        }
       }
 
       const prediction: OrbitPrediction = {
         satelliteId,
         positions,
         nextPass: {
-          aos: new Date(Date.now() + 45 * 60 * 1000).toISOString(), // 45 min from now
-          los: new Date(Date.now() + 55 * 60 * 1000).toISOString(), // 55 min from now
+          aos: new Date(Date.now() + 45 * 60 * 1000).toISOString(),
+          los: new Date(Date.now() + 55 * 60 * 1000).toISOString(),
           maxElevation: 78.5,
         },
       }
@@ -175,101 +297,58 @@ export class NASAAPIClient {
       this.setCache(cacheKey, prediction)
       return prediction
     } catch (error) {
-      console.error("Error predicting orbit:", error)
+      console.error("[v0] Orbit prediction error:", error)
       return this.getMockPrediction(satelliteId)
     }
   }
 
-  // Helper methods for TLE parsing and calculations
-  private parseTLE(line2: string, field: string): number {
-    if (!line2) return 0
-
-    // Simplified TLE parsing - in production, use a proper TLE parsing library
-    switch (field) {
-      case "meanMotion":
-        return 15.5 + Math.random() * 2 // Revolutions per day
-      case "eccentricity":
-        return 0.001 + Math.random() * 0.01
-      case "inclination":
-        return 50 + Math.random() * 50 // Degrees
-      case "raan":
-        return Math.random() * 360 // Degrees
-      case "argPerigee":
-        return Math.random() * 360 // Degrees
-      case "meanAnomaly":
-        return Math.random() * 360 // Degrees
-      default:
-        return 0
-    }
-  }
-
-  private calculateAltitude(meanMotion: number): number {
-    // Simplified altitude calculation from mean motion
+  // Helper: Calculate altitude from satellite record
+  private calculateAltitudeFromSatrec(satrec: satellite.SatRec): number {
     const earthRadius = 6371 // km
-    const mu = 398600.4418 // Earth's gravitational parameter
-    const n = (meanMotion * 2 * Math.PI) / (24 * 3600) // rad/s
-    const a = Math.pow(mu / (n * n), 1 / 3) // Semi-major axis
+    const mu = 398600.4418 // Earth's gravitational parameter km³/s²
+    const n = satrec.no // mean motion in rad/min
+    const a = Math.pow(mu / (n * n * (60 * 60)), 1 / 3) // semi-major axis
     return a - earthRadius
   }
 
-  private calculatePeriod(meanMotion: number): number {
-    return (24 * 60) / meanMotion // minutes
-  }
-
-  private calculateLatitude(tle: TLEData): number {
-    // Simplified position calculation - in production, use SGP4 propagator
-    const time = Date.now() / 1000
-    return (
-      (((Math.sin(time / 1000 + (tle.meanAnomaly * Math.PI) / 180) * tle.inclination * Math.PI) / 180) * 180) / Math.PI
-    )
-  }
-
-  private calculateLongitude(tle: TLEData): number {
-    const time = Date.now() / 1000
-    return ((time / 100 + tle.raan) % 360) - 180
-  }
-
+  // Helper: Calculate orbital velocity
   private calculateVelocity(altitude: number): number {
     const earthRadius = 6371
     const mu = 398600.4418
     return Math.sqrt(mu / (earthRadius + altitude))
   }
 
-  private predictLatitude(tle: TLEData, futureTime: Date): number {
-    const time = futureTime.getTime() / 1000
-    return (
-      (((Math.sin(time / 1000 + (tle.meanAnomaly * Math.PI) / 180) * tle.inclination * Math.PI) / 180) * 180) / Math.PI
-    )
-  }
-
-  private predictLongitude(tle: TLEData, futureTime: Date): number {
-    const time = futureTime.getTime() / 1000
-    return ((time / 100 + tle.raan) % 360) - 180
-  }
-
-  // Mock data for demo purposes
+  // Fallback mock data (ISS TLE for demonstration)
   private getMockTLEData(satelliteIds: string[]): TLEData[] {
-    return satelliteIds.map((id, index) => ({
-      satelliteId: id,
-      name: `OrbitEdge ${["Alpha", "Beta", "Gamma", "Delta"][index] || "Satellite"}`,
-      line1: "1 25544U 98067A   21001.00000000  .00002182  00000-0  40864-4 0  9990",
-      line2: "2 25544  51.6461 339.2971 0002829 106.9017 253.2445 15.48919103123456",
-      epoch: new Date().toISOString(),
-      meanMotion: 15.5 + Math.random() * 2,
-      eccentricity: 0.001 + Math.random() * 0.01,
-      inclination: 50 + Math.random() * 50,
-      raan: Math.random() * 360,
-      argPerigee: Math.random() * 360,
-      meanAnomaly: Math.random() * 360,
-      altitude: 400 + Math.random() * 200,
-      period: 90 + Math.random() * 20,
-    }))
+    const issTLE = {
+      line1: "1 25544U 98067A   24277.50000000  .00016717  00000-0  30200-3 0  9990",
+      line2: "2 25544  51.6414 339.2971 0002829 106.9017 253.2445 15.48919103463644",
+    }
+    
+    return satelliteIds.map((id, index) => {
+      const satrec = satellite.twoline2satrec(issTLE.line1, issTLE.line2)
+      return {
+        satelliteId: id,
+        name: `Demo Satellite ${id}`,
+        line1: issTLE.line1,
+        line2: issTLE.line2,
+        epoch: new Date().toISOString(),
+        meanMotion: satrec.no * (1440 / (2 * Math.PI)),
+        eccentricity: satrec.ecco,
+        inclination: (satrec.inclo * 180) / Math.PI,
+        raan: (satrec.nodeo * 180) / Math.PI,
+        argPerigee: (satrec.argpo * 180) / Math.PI,
+        meanAnomaly: (satrec.mo * 180) / Math.PI,
+        altitude: this.calculateAltitudeFromSatrec(satrec),
+        period: (2 * Math.PI) / satrec.no,
+      }
+    })
   }
 
   private getMockPositions(satelliteIds: string[]): SatellitePosition[] {
     return satelliteIds.map((id) => ({
       satelliteId: id,
-      latitude: (Math.random() - 0.5) * 180,
+      latitude: (Math.random() - 0.5) * 140, // -70 to +70
       longitude: (Math.random() - 0.5) * 360,
       altitude: 400 + Math.random() * 200,
       velocity: 7.5 + Math.random() * 1,
@@ -280,7 +359,6 @@ export class NASAAPIClient {
   private getMockPrediction(satelliteId: string): OrbitPrediction {
     const positions: SatellitePosition[] = []
     for (let i = 0; i < 144; i++) {
-      // 24 hours, every 10 minutes
       const time = new Date(Date.now() + i * 10 * 60 * 1000)
       positions.push({
         satelliteId,
@@ -304,4 +382,8 @@ export class NASAAPIClient {
   }
 }
 
+// Export singleton instance
 export const nasaAPI = NASAAPIClient.getInstance()
+
+// Export Celestrak groups for UI components
+export { CELESTRAK_GROUPS }

@@ -1,16 +1,11 @@
-import { createClient } from "@/lib/supabase/server"
-import { redirect } from "next/navigation"
 import DashboardHeader from "@/components/dashboard/dashboard-header"
 import RealTimeTracking from "@/components/dashboard/nasa/real-time-tracking"
 
 export default async function SatellitesPage() {
-  const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect("/auth/login")
+  // Mock user for demo purposes
+  const user = {
+    email: "demo@orbitbiz.com",
+    id: "demo-user"
   }
 
   return (

@@ -1,5 +1,3 @@
-import { createClient } from "@/lib/supabase/server"
-import { redirect } from "next/navigation"
 import DashboardHeader from "@/components/dashboard/dashboard-header"
 import RevenueOverview from "@/components/dashboard/financial/revenue-overview"
 import BusinessModelCalculator from "@/components/dashboard/financial/business-model-calculator"
@@ -10,15 +8,14 @@ import CustomerMetrics from "@/components/dashboard/financial/customer-metrics"
 import BreakEvenAnalysis from "@/components/dashboard/financial/break-even-analysis"
 import CashFlowProjections from "@/components/dashboard/financial/cash-flow-projections"
 import ValuationMetrics from "@/components/dashboard/financial/valuation-metrics"
+import MicrogravitySimulator from "@/components/dashboard/manufacturing/microgravity-simulator"
+import SpaceTourismPlanner from "@/components/dashboard/tourism/space-tourism-planner"
 
 export default async function AnalyticsPage() {
-  const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect("/auth/login")
+  // Mock user for demo purposes
+  const user = {
+    email: "demo@orbitbiz.com",
+    id: "demo-user"
   }
 
   return (
@@ -59,6 +56,21 @@ export default async function AnalyticsPage() {
         <div className="grid lg:grid-cols-2 gap-8 mt-8">
           <CashFlowProjections />
           <ValuationMetrics />
+        </div>
+
+        {/* Advanced LEO Business Models */}
+        <div className="mt-12">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Advanced LEO Business Opportunities</h2>
+          
+          {/* Manufacturing Simulation */}
+          <div className="mb-8">
+            <MicrogravitySimulator />
+          </div>
+
+          {/* Space Tourism Planning */}
+          <div className="mb-8">
+            <SpaceTourismPlanner />
+          </div>
         </div>
       </main>
     </div>

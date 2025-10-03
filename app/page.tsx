@@ -1,15 +1,12 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Satellite, Shield, TrendingUp, Globe, Zap, Users } from "lucide-react"
+import { Satellite, Shield, TrendingUp, Globe, Zap, Users, Rocket } from "lucide-react"
 import Link from "next/link"
-import { createClient } from "@/lib/supabase/server"
 
 export default async function HomePage() {
-  const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // Demo mode - everyone can access
+  const user = null
 
   return (
     <div className="min-h-screen bg-white">
@@ -26,37 +23,36 @@ export default async function HomePage() {
                 <p className="text-xs text-gray-600">Pioneering Sustainable LEO Commerce</p>
               </div>
             </div>
-            <nav className="hidden md:flex items-center gap-6">
-              <Link href="/dashboard" className="text-gray-600 hover:text-[#4e6aff] transition-colors">
-                Overview
-              </Link>
-              <Link href="/dashboard/satellites" className="text-gray-600 hover:text-[#4e6aff] transition-colors">
-                Satellites
-              </Link>
-              <Link href="/dashboard/map" className="text-gray-600 hover:text-[#4e6aff] transition-colors">
-                Map
-              </Link>
-              <Link href="/dashboard/analytics" className="text-gray-600 hover:text-[#4e6aff] transition-colors">
-                Analytics
-              </Link>
-              <Link href="/dashboard/chat" className="text-gray-600 hover:text-[#4e6aff] transition-colors">
-                Chat
-              </Link>
-              <Link href="/dashboard/compliance" className="text-gray-600 hover:text-[#4e6aff] transition-colors">
-                Compliance
-              </Link>
-              <Link href="/dashboard/learn" className="text-gray-600 hover:text-[#4e6aff] transition-colors">
-                Learn
-              </Link>
-              {user ? (
-                <Link href="/dashboard">
-                  <Button className="bg-[#4e6aff] hover:bg-[#3d54e6] text-white">Dashboard</Button>
+            <nav className="flex items-center gap-6">
+              <div className="hidden md:flex items-center gap-6">
+                <Link href="/dashboard" className="text-gray-600 hover:text-[#4e6aff] transition-colors">
+                  Overview
                 </Link>
-              ) : (
-                <Link href="/auth/login">
-                  <Button className="bg-[#4e6aff] hover:bg-[#3d54e6] text-white">Get Started</Button>
+                <Link href="/dashboard/satellites" className="text-gray-600 hover:text-[#4e6aff] transition-colors">
+                  Satellites
                 </Link>
-              )}
+                <Link href="/dashboard/map" className="text-gray-600 hover:text-[#4e6aff] transition-colors">
+                  Map
+                </Link>
+                <Link href="/dashboard/analytics" className="text-gray-600 hover:text-[#4e6aff] transition-colors">
+                  Analytics
+                </Link>
+                <Link href="/dashboard/chat" className="text-gray-600 hover:text-[#4e6aff] transition-colors">
+                  Chat
+                </Link>
+                <Link href="/dashboard/compliance" className="text-gray-600 hover:text-[#4e6aff] transition-colors">
+                  Compliance
+                </Link>
+                <Link href="/dashboard/learn" className="text-gray-600 hover:text-[#4e6aff] transition-colors">
+                  Learn
+                </Link>
+              </div>
+              <Link href="/dashboard">
+                <Button className="bg-[#4e6aff] hover:bg-[#3d54e6] text-white">
+                  <span className="hidden sm:inline">Get Started</span>
+                  <span className="sm:hidden">Dashboard</span>
+                </Button>
+              </Link>
             </nav>
           </div>
         </div>
@@ -77,26 +73,22 @@ export default async function HomePage() {
             Powered by NASA open data and advanced analytics.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            {user ? (
-              <Link href="/dashboard">
-                <Button size="lg" className="bg-[#4e6aff] hover:bg-[#3d54e6] text-white px-8 py-3">
-                  Go to Dashboard
-                </Button>
-              </Link>
-            ) : (
-              <Link href="/auth/sign-up">
-                <Button size="lg" className="bg-[#4e6aff] hover:bg-[#3d54e6] text-white px-8 py-3">
-                  Start Free Trial
-                </Button>
-              </Link>
-            )}
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-[#4e6aff] text-[#4e6aff] hover:bg-[#4e6aff] hover:text-white px-8 py-3 bg-transparent"
-            >
-              View Demo
-            </Button>
+            <Link href="/dashboard">
+              <Button size="lg" className="bg-[#4e6aff] hover:bg-[#3d54e6] text-white px-8 py-3 transform hover:scale-105 transition-all duration-200">
+                <Rocket className="w-5 h-5 mr-2" />
+                Launch Dashboard
+              </Button>
+            </Link>
+            <Link href="/dashboard/analytics">
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-[#4e6aff] text-[#4e6aff] hover:bg-[#4e6aff] hover:text-white px-8 py-3 bg-transparent transform hover:scale-105 transition-all duration-200"
+              >
+                <Globe className="w-5 h-5 mr-2" />
+                Explore Features
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
@@ -112,79 +104,91 @@ export default async function HomePage() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-              <CardHeader>
-                <div className="w-12 h-12 bg-[#4e6aff]/10 rounded-lg flex items-center justify-center mb-4">
-                  <Satellite className="w-6 h-6 text-[#4e6aff]" />
-                </div>
-                <CardTitle className="text-xl font-space-grotesk">Real-time Monitoring</CardTitle>
-                <CardDescription>
-                  Track satellite positions, orbital parameters, and health status using NASA TLE data and advanced
-                  algorithms
-                </CardDescription>
-              </CardHeader>
-            </Card>
+            <Link href="/dashboard/satellites">
+              <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
+                <CardHeader>
+                  <div className="w-12 h-12 bg-[#4e6aff]/10 rounded-lg flex items-center justify-center mb-4">
+                    <Satellite className="w-6 h-6 text-[#4e6aff]" />
+                  </div>
+                  <CardTitle className="text-xl font-space-grotesk">Real-time Monitoring</CardTitle>
+                  <CardDescription>
+                    Track satellite positions, orbital parameters, and health status using NASA TLE data and advanced
+                    algorithms
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            </Link>
 
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-              <CardHeader>
-                <div className="w-12 h-12 bg-[#4e6aff]/10 rounded-lg flex items-center justify-center mb-4">
-                  <Shield className="w-6 h-6 text-[#4e6aff]" />
-                </div>
-                <CardTitle className="text-xl font-space-grotesk">Risk Analysis</CardTitle>
-                <CardDescription>
-                  Debris collision prediction, ISO 24113 compliance monitoring, and automated risk assessment reports
-                </CardDescription>
-              </CardHeader>
-            </Card>
+            <Link href="/dashboard/compliance">
+              <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
+                <CardHeader>
+                  <div className="w-12 h-12 bg-[#4e6aff]/10 rounded-lg flex items-center justify-center mb-4">
+                    <Shield className="w-6 h-6 text-[#4e6aff]" />
+                  </div>
+                  <CardTitle className="text-xl font-space-grotesk">Risk Analysis</CardTitle>
+                  <CardDescription>
+                    Debris collision prediction, ISO 24113 compliance monitoring, and automated risk assessment reports
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            </Link>
 
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-              <CardHeader>
-                <div className="w-12 h-12 bg-[#4e6aff]/10 rounded-lg flex items-center justify-center mb-4">
-                  <TrendingUp className="w-6 h-6 text-[#4e6aff]" />
-                </div>
-                <CardTitle className="text-xl font-space-grotesk">Financial Analytics</CardTitle>
-                <CardDescription>
-                  Business model optimization, ROI projections, and market analysis for sustainable LEO operations
-                </CardDescription>
-              </CardHeader>
-            </Card>
+            <Link href="/dashboard/analytics">
+              <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
+                <CardHeader>
+                  <div className="w-12 h-12 bg-[#4e6aff]/10 rounded-lg flex items-center justify-center mb-4">
+                    <TrendingUp className="w-6 h-6 text-[#4e6aff]" />
+                  </div>
+                  <CardTitle className="text-xl font-space-grotesk">Financial Analytics</CardTitle>
+                  <CardDescription>
+                    Business model optimization, ROI projections, and market analysis for sustainable LEO operations
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            </Link>
 
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-              <CardHeader>
-                <div className="w-12 h-12 bg-[#4e6aff]/10 rounded-lg flex items-center justify-center mb-4">
-                  <Globe className="w-6 h-6 text-[#4e6aff]" />
-                </div>
-                <CardTitle className="text-xl font-space-grotesk">Global Coverage</CardTitle>
-                <CardDescription>
-                  Worldwide satellite tracking with support for commercial space stations like Axiom and Starlab
-                </CardDescription>
-              </CardHeader>
-            </Card>
+            <Link href="/dashboard/map">
+              <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
+                <CardHeader>
+                  <div className="w-12 h-12 bg-[#4e6aff]/10 rounded-lg flex items-center justify-center mb-4">
+                    <Globe className="w-6 h-6 text-[#4e6aff]" />
+                  </div>
+                  <CardTitle className="text-xl font-space-grotesk">Global Coverage</CardTitle>
+                  <CardDescription>
+                    Worldwide satellite tracking with support for commercial space stations like Axiom and Starlab
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            </Link>
 
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-              <CardHeader>
-                <div className="w-12 h-12 bg-[#4e6aff]/10 rounded-lg flex items-center justify-center mb-4">
-                  <Zap className="w-6 h-6 text-[#4e6aff]" />
-                </div>
-                <CardTitle className="text-xl font-space-grotesk">Microgravity Simulation</CardTitle>
-                <CardDescription>
-                  Advanced physics modeling for LEO environment analysis and mission planning optimization
-                </CardDescription>
-              </CardHeader>
-            </Card>
+            <Link href="/dashboard/analytics">
+              <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
+                <CardHeader>
+                  <div className="w-12 h-12 bg-[#4e6aff]/10 rounded-lg flex items-center justify-center mb-4">
+                    <Zap className="w-6 h-6 text-[#4e6aff]" />
+                  </div>
+                  <CardTitle className="text-xl font-space-grotesk">Microgravity Simulation</CardTitle>
+                  <CardDescription>
+                    Advanced physics modeling for LEO environment analysis and mission planning optimization
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            </Link>
 
-            <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
-              <CardHeader>
-                <div className="w-12 h-12 bg-[#4e6aff]/10 rounded-lg flex items-center justify-center mb-4">
-                  <Users className="w-6 h-6 text-[#4e6aff]" />
-                </div>
-                <CardTitle className="text-xl font-space-grotesk">Team Collaboration</CardTitle>
-                <CardDescription>
-                  Multi-user dashboards, role-based access, and integrated communication tools for space operations
-                  teams
-                </CardDescription>
-              </CardHeader>
-            </Card>
+            <Link href="/dashboard/chat">
+              <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow cursor-pointer">
+                <CardHeader>
+                  <div className="w-12 h-12 bg-[#4e6aff]/10 rounded-lg flex items-center justify-center mb-4">
+                    <Users className="w-6 h-6 text-[#4e6aff]" />
+                  </div>
+                  <CardTitle className="text-xl font-space-grotesk">Team Collaboration</CardTitle>
+                  <CardDescription>
+                    Multi-user dashboards, role-based access, and integrated communication tools for space operations
+                    teams
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            </Link>
           </div>
         </div>
       </section>
@@ -228,9 +232,9 @@ export default async function HomePage() {
                     Email support
                   </li>
                 </ul>
-                <Link href={user ? "/dashboard" : "/auth/sign-up"}>
+                <Link href="/dashboard">
                   <Button className="w-full mt-6 bg-[#4e6aff] hover:bg-[#3d54e6] text-white">
-                    {user ? "Upgrade Plan" : "Start Free Trial"}
+                    Start Free Trial
                   </Button>
                 </Link>
               </CardContent>
@@ -305,6 +309,14 @@ export default async function HomePage() {
                       <li>• Al Razi</li>
                       <li>• Rukaiya Binte Amin</li>
                     </ul>
+                  </div>
+                  <div className="mt-6">
+                    <Link href="/dashboard">
+                      <Button className="bg-[#4e6aff] hover:bg-[#3d54e6] text-white">
+                        <Satellite className="w-4 h-4 mr-2" />
+                        Explore Our Solution
+                      </Button>
+                    </Link>
                   </div>
                 </div>
                 <div className="bg-[#4e6aff]/5 p-6 rounded-lg">
@@ -482,6 +494,20 @@ export default async function HomePage() {
           </div>
         </div>
       </footer>
+
+      {/* Floating Dashboard Button */}
+      <div className="fixed bottom-6 right-6 z-50">
+        <Link href="/dashboard">
+          <Button 
+            size="lg" 
+            className="bg-[#4e6aff] hover:bg-[#3d54e6] text-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-full px-6 py-3"
+          >
+            <Satellite className="w-5 h-5 mr-2" />
+            <span className="hidden sm:inline">Launch Dashboard</span>
+            <span className="sm:hidden">Dashboard</span>
+          </Button>
+        </Link>
+      </div>
     </div>
   )
 }

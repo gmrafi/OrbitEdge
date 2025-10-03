@@ -1,19 +1,15 @@
-import { createClient } from "@/lib/supabase/server"
-import { redirect } from "next/navigation"
 import DashboardHeader from "@/components/dashboard/dashboard-header"
 import ComplianceOverview from "@/components/dashboard/compliance/compliance-overview"
 import RiskMatrix from "@/components/dashboard/compliance/risk-matrix"
 import ComplianceReports from "@/components/dashboard/compliance/compliance-reports"
 import DebrisTracking from "@/components/dashboard/compliance/debris-tracking"
+import AssetLifecycleManager from "@/components/dashboard/sustainability/asset-lifecycle-manager"
 
 export default async function CompliancePage() {
-  const supabase = createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    redirect("/auth/login")
+  // Mock user for demo purposes
+  const user = {
+    email: "demo@orbitbiz.com",
+    id: "demo-user"
   }
 
   return (
@@ -41,6 +37,12 @@ export default async function CompliancePage() {
         {/* Compliance Reports */}
         <div className="mt-8">
           <ComplianceReports />
+        </div>
+
+        {/* Sustainable Asset Management */}
+        <div className="mt-12">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Sustainable Asset Lifecycle Management</h2>
+          <AssetLifecycleManager />
         </div>
       </main>
     </div>

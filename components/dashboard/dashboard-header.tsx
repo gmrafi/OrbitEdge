@@ -9,9 +9,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Satellite, Settings, LogOut, User, Bell } from "lucide-react"
+import { Satellite, Settings, User, Bell } from "lucide-react"
 import Link from "next/link"
-import { signOut } from "@/lib/actions"
+
 import { Badge } from "@/components/ui/badge"
 import { usePathname } from "next/navigation"
 
@@ -106,6 +106,14 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
               >
                 Learn
               </Link>
+              <Link
+                href="/dashboard/resources"
+                className={`font-medium transition-colors ${
+                  isActive("/dashboard/resources") ? "text-[#4e6aff]" : "text-gray-600 hover:text-[#4e6aff]"
+                }`}
+              >
+                Resources
+              </Link>
             </nav>
           </div>
 
@@ -138,15 +146,6 @@ export default function DashboardHeader({ user }: DashboardHeaderProps) {
                 <DropdownMenuItem>
                   <Settings className="w-4 h-4 mr-2" />
                   Settings
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <form action={signOut}>
-                    <button type="submit" className="flex items-center w-full">
-                      <LogOut className="w-4 h-4 mr-2" />
-                      Sign Out
-                    </button>
-                  </form>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
