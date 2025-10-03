@@ -1,7 +1,16 @@
 # OrbitBiZ: Pioneering Sustainable LEO Commerce
 
+## 🌐 Live Project
+
+**🚀 Visit OrbitBiZ Live Website: https://orbitedge.gmrafi.com/** 
+
+Experience our platform in action with real-time NASA data, interactive 3D globe, satellite tracking, and comprehensive LEO analytics!
+
+---
+
 [![NASA Space Apps Challenge 2025](https://img.shields.io/badge/NASA%20Space%20Apps-Challenge%202025-blue?style=for-the-badge&logo=nasa)](https://www.spaceappschallenge.org/)
 [![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/spacwwebs-projects/v0-orbit-edge-global-project)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-orbitedge.gmrafi.com-success?style=for-the-badge&logo=vercel)](https://orbitedge.gmrafi.com/)
 
 
 ## 🚀 Project Overview
