@@ -25,6 +25,8 @@ Experience our platform in action with real-time NASA data, interactive 3D globe
 
 ## 👥 Team: AIBA SpaceWeb
 
+**🔗 NASA Space Apps Team Page: https://www.spaceappschallenge.org/2025/find-a-team/aiba-spaceweb/**
+
 **AIBA SpaceWeb** is a passionate team from **Sylhet, Bangladesh**, transforming Low Earth Orbit (LEO) challenges into sustainable opportunities. We're diving into the **"Commercializing Low Earth Orbit"** challenge with **OrbitBiZ: Pioneering Sustainable LEO Commerce**—a cutting-edge Satellite Inspection-as-a-Service platform. 
 
 Powered by **NASA TLE data** and **Space-Track.org**, OrbitBiZ tracks over **64,000 orbital objects** in real time, delivering advanced collision prediction, real-time orbital analysis, and **10 interactive maps** (from debris risk heatmaps to space tourism routes and global connectivity).
@@ -36,6 +38,8 @@ We combine tech prowess with strategic insight:
 - **Mashrura Meshkat Punno** - Financial Modeling & Strategy  
 - **Al Razi** - Market Analysis & Operations
 - **Rukaiya Binte Amin** - Risk Assessment & Compliance
+- **Israt Zarin Ruponty** - Researcher
+- **S M Mosaddad Ali** - Researcher
 
 ### Our Expertise
 We shine in:
