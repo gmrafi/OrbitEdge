@@ -6,6 +6,7 @@
 
 Experience our platform in action with real-time NASA data, interactive 3D globe, satellite tracking, and comprehensive LEO analytics!
 
+Video Pitch - 240 seconds: https://drive.google.com/file/d/17BR03h5CqTsWQsEmu4RpW7_ddaomeJFU/view?usp=drive_link 
 ---
 
 [![NASA Space Apps Challenge 2025](https://img.shields.io/badge/NASA%20Space%20Apps-Challenge%202025-blue?style=for-the-badge&logo=nasa)](https://www.spaceappschallenge.org/)
@@ -34,7 +35,7 @@ Powered by **NASA TLE data** and **Space-Track.org**, OrbitBiZ tracks over **64,
 ### Our Diverse Squad
 We combine tech prowess with strategic insight:
 
-- **Md Golam Mubasshir Rafi (Rafi)** - Business Analytics & Project Coordination
+- **Md Golam Mubasshir Rafi ** - Business Analytics & Technical Lead
 - **Mashrura Meshkat Punno** - Financial Modeling & Strategy  
 - **Al Razi** - Market Analysis & Operations
 - **Rukaiya Binte Amin** - Risk Assessment & Compliance
