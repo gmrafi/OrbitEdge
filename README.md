@@ -2,11 +2,11 @@
 
 ## 🌐 Live Project
 
-**🚀 Visit OrbitBiZ Live Website: https://orbitedge.gmrafi.com/** 
+** Visit OrbitBiZ Live Website: https://orbitbiz.gmrafi.com/** 
 
 Experience our platform in action with real-time NASA data, interactive 3D globe, satellite tracking, and comprehensive LEO analytics!
 
-Video Pitch - 240 seconds: https://drive.google.com/file/d/17BR03h5CqTsWQsEmu4RpW7_ddaomeJFU/view?usp=drive_link 
+**Video Pitch - 240 seconds: https://drive.google.com/file/d/17BR03h5CqTsWQsEmu4RpW7_ddaomeJFU/view?usp=drive_link 
 ---
 
 [![NASA Space Apps Challenge 2025](https://img.shields.io/badge/NASA%20Space%20Apps-Challenge%202025-blue?style=for-the-badge&logo=nasa)](https://www.spaceappschallenge.org/)
